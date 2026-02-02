@@ -1,0 +1,17 @@
+﻿
+web3>=6.0.0
+eth-account>=0.10.0
+
+py-solc-x
+
+
+pytest>=7.0.0
+python-dotenv>=1.0.0
+
+
+pandas>=2.0.0
+matplotlib>=3.7.0
+
+
+requests>=2.31.0
+aiohttp>=3.9.0
