@@ -28,7 +28,7 @@ class AIAttackGenerator:
             api_key: DeepSeek API key (defaults to env var DEEPSEEK_API_KEY)
             base_url: DeepSeek API base URL
         """
-        self.api_key = api_key or os.getenv("sk-85f96e1bfc48422fa3755f8b7721892d")
+        self.api_key = api_key or os.getenv("")
         
         if not self.api_key:
             raise ValueError(
