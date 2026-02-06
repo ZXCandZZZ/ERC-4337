@@ -1,0 +1,13 @@
+# AI Attack Generator Dependencies - Milestone 1
+# DeepSeek API Integration
+
+# HTTP client for API calls
+requests>=2.31.0
+
+# Utilities
+python-dotenv>=1.0.0
+
+# Future dependencies (for M2/M3):
+# openai>=1.0.0  # Alternative API support
+# pytest>=7.0.0  # Unit testing
+# pandas>=2.0.0  # Dataset analysis
