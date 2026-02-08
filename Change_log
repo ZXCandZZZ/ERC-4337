@@ -1,0 +1,24 @@
+#Dependence Python Node.js
+
+#change log 2026.2.6 test_signature_security-fixed.py
+'''
+Test file for vulnerability, located at.\tests\test_signature_security.py Fixed 2 bugs
+
+1. [Test 1/4] All-zero signature attack Objective: Check if the contract accepts invalid signatures of all zeros 
+❌ Test framework initialization failed: 'Contract' object has no attribute 'encodeABI' 
+
+Problem cause: In line 97, the code has a method call error:
+self.account.encodeABI(fn_name='execute', args=[self.accounts['attacker'].address, 0, b'']) # callData 
+
+Fixing method: Modified to self.account.functions.execute(self.accounts['attacker'].address, 0, b'')._encode_transaction_data(), #callData 
+
+2. The runtime test 4 showed a failure. 
+From the log file in.\data\results\, it can be seen that 'reverted with reason string 'Invalid nonce'' was reported.
+This indicates that the illegal nonce in test 4 was intercepted. It should have passed the test, but it showed a failure.
+The problem lies in the exception handling logic of the test code.
+The exception type might not be ContractLogicError, but could be other types of exceptions (such as ValueError or web3's BadResponseFormatError), thus directly entering the error reporting process. 
+
+Fixing method:
+Modify lines 330-337 of the code as follows: 
+except Exception as e: error_str = str(e) if 'Invalid nonce' in error_str or 'nonce' in error_str.lower(): return { 'test': 'replay_attack', 'status': '✅ Passed', 'description': 'The replay transaction was rejected due to an invalid nonce.', 'severity': 'NONE', 'error': error_str[:100] } else: return { 'test': 'replay_attack', 'status': '⚠️ Test failed', 'description': f'Replay failed, but the reason is not due to an invalid nonce: {error_str[:50]}', 'severity': 'INFO', 'error': error_str }
+'''
