@@ -299,34 +299,76 @@ class SignatureSecurityTest:
     def test_invalid_v_signature(self):
         """Test 3: Invalid signature v-value attack (v ≠ 27, 28)"""
         print("   Purpose: Check if contract validates signature v-value must be 27 or 28")
-        
-        # Create a valid message
-        message = messages.encode_defunct(text="Test Message")
+
+        # Build a baseline signature and mutate v byte for on-chain verification path
+        message = messages.encode_defunct(text="ERC-4337 invalid-v test")
         signed = self.accounts['user'].sign_message(message)
-        
-        # Get signature components
         r = signed.r.to_bytes(32, 'big')
         s = signed.s.to_bytes(32, 'big')
-        original_v = signed.v
-        
-        # Test invalid v-values
+
+        # Invalid v values for ECDSA in this context
         invalid_v_values = [0, 1, 26, 29, 255]
         results = []
-        
-        for invalid_v in invalid_v_values:
-            # Construct invalid signature
+
+        base_nonce = self.get_account_nonce(self.account.address, 0)
+        gas_price = self.w3.eth.gas_price
+        callData = self.account.functions.execute(
+            self.accounts['attacker'].address,
+            0,
+            b''
+        )._encode_transaction_data()
+
+        for i, invalid_v in enumerate(invalid_v_values):
             invalid_signature = r + s + bytes([invalid_v])
-            
-            # Here we need to construct a complete UserOperation to test
-            # Simplified: directly print results
-            results.append(f'v={invalid_v}: invalid')
-        
+
+            user_op = self.create_packed_user_op(
+                sender=self.account.address,
+                nonce=base_nonce + i,
+                initCode=b'',
+                callData=callData,
+                verificationGasLimit=250000,
+                callGasLimit=300000,
+                preVerificationGas=50000,
+                maxPriorityFeePerGas=gas_price,
+                maxFeePerGas=gas_price,
+                paymasterAndData=b'',
+                signature=invalid_signature
+            )
+
+            try:
+                tx_hash = self.entrypoint.functions.handleOps([user_op], self.accounts['attacker'].address).transact({
+                    'from': self.accounts['deployer'].address,
+                    'gas': 1200000
+                })
+                receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+
+                if receipt.status == 1:
+                    results.append(f'v={invalid_v}: accepted')
+                else:
+                    results.append(f'v={invalid_v}: rejected(status=0)')
+
+            except Exception as e:
+                error_msg = str(e).lower()
+                if 'revert' in error_msg or 'failed' in error_msg or 'invalid' in error_msg:
+                    results.append(f'v={invalid_v}: rejected')
+                else:
+                    results.append(f'v={invalid_v}: error({str(e)[:60]})')
+
+        if any('accepted' in r for r in results):
+            return {
+                'test': 'invalid_v_signature',
+                'status': '❌ HIGH VULNERABILITY',
+                'description': f'Invalid v signatures accepted by contract. Results: {results}',
+                'severity': 'HIGH',
+                'details': results
+            }
+
         return {
             'test': 'invalid_v_signature',
             'status': '✅ PASSED',
-            'description': 'Signature v-value validation needs further testing in contract.',
-            'severity': 'INFO',
-            'details': 'Need to directly call contract validation function for testing'
+            'description': 'All invalid v-value signatures were rejected on-chain.',
+            'severity': 'NONE',
+            'details': results
         }
     
     def test_replay_attack(self):
