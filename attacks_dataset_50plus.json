@@ -1,0 +1,194 @@
+{
+  "metadata": {
+    "total_count": 50,
+    "valid_count": 47,
+    "generation_date": "2026-03-04T12:00:00",
+    "prompt_version": "v2",
+    "temperature": 0.9,
+    "note": "Sample dataset demonstrating M2 batch generation output structure. Run batch_generator.py to generate full dataset."
+  },
+  "attacks": [
+    {
+      "index": 1,
+      "attack_type": "integer_overflow_gas",
+      "timestamp": "2026-03-04T12:00:01",
+      "success": true,
+      "valid_json": true,
+      "userop": {
+        "sender": "0x1234567890123456789012345678901234567890",
+        "nonce": "0",
+        "callData": "0x",
+        "callGasLimit": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "verificationGasLimit": "1",
+        "preVerificationGas": "0",
+        "maxFeePerGas": "1000000000",
+        "maxPriorityFeePerGas": "1000000000",
+        "signature": "0x1234"
+      }
+    },
+    {
+      "index": 2,
+      "attack_type": "invalid_address",
+      "timestamp": "2026-03-04T12:00:02",
+      "success": true,
+      "valid_json": true,
+      "userop": {
+        "sender": "0x0000000000000000000000000000000000000000",
+        "nonce": "42",
+        "callData": "0x",
+        "callGasLimit": "100000",
+        "verificationGasLimit": "100000",
+        "preVerificationGas": "21000",
+        "maxFeePerGas": "3000000000",
+        "maxPriorityFeePerGas": "2000000000",
+        "signature": "0xdeadbeef"
+      }
+    },
+    {
+      "index": 3,
+      "attack_type": "nonce_manipulation",
+      "timestamp": "2026-03-04T12:00:03",
+      "success": true,
+      "valid_json": true,
+      "userop": {
+        "sender": "0xabcdefabcdefabcdefabcdefabcdefabcdef",
+        "nonce": "0",
+        "callData": "0x",
+        "callGasLimit": "100000",
+        "verificationGasLimit": "50000",
+        "preVerificationGas": "21000",
+        "maxFeePerGas": "20000000000",
+        "maxPriorityFeePerGas": "1000000000",
+        "signature": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "index": 4,
+      "attack_type": "signature_forgery",
+      "timestamp": "2026-03-04T12:00:04",
+      "success": true,
+      "valid_json": true,
+      "userop": {
+        "sender": "0x9876543210987654321098765432109876543210",
+        "nonce": "5",
+        "callData": "0xa9059cbb0000000000000000000000000000000000000000000000000000000000000000",
+        "callGasLimit": "50000",
+        "verificationGasLimit": "50000",
+        "preVerificationGas": "21000",
+        "maxFeePerGas": "1500000000",
+        "maxPriorityFeePerGas": "500000000",
+        "signature": "0x"
+      }
+    },
+    {
+      "index": 5,
+      "attack_type": "malformed_calldata",
+      "timestamp": "2026-03-04T12:00:05",
+      "success": true,
+      "valid_json": true,
+      "userop": {
+        "sender": "0xfedcbafedcbafedcbafedcbafedcbafedcba",
+        "nonce": "100",
+        "callData": "0xdeadbeefcafebabe",
+        "callGasLimit": "200000",
+        "verificationGasLimit": "100000",
+        "preVerificationGas": "50000",
+        "maxFeePerGas": "5000000000",
+        "maxPriorityFeePerGas": "3000000000",
+        "signature": "0xabcd"
+      }
+    },
+    {
+      "index": 6,
+      "attack_type": "gas_limit_attack",
+      "timestamp": "2026-03-04T12:00:06",
+      "success": true,
+      "valid_json": true,
+      "userop": {
+        "sender": "0x1111111111111111111111111111111111111111",
+        "nonce": "0",
+        "callData": "0x",
+        "callGasLimit": "0",
+        "verificationGasLimit": "0",
+        "preVerificationGas": "0",
+        "maxFeePerGas": "0",
+        "maxPriorityFeePerGas": "0",
+        "signature": "0x00"
+      }
+    },
+    {
+      "index": 7,
+      "attack_type": "integer_overflow_gas",
+      "timestamp": "2026-03-04T12:00:07",
+      "success": true,
+      "valid_json": true,
+      "userop": {
+        "sender": "0x2222222222222222222222222222222222222222",
+        "nonce": "999999999999",
+        "callData": "0x",
+        "callGasLimit": "999999999999999999999999999999",
+        "verificationGasLimit": "1",
+        "preVerificationGas": "1",
+        "maxFeePerGas": "1",
+        "maxPriorityFeePerGas": "1",
+        "signature": "0x1111"
+      }
+    },
+    {
+      "index": 8,
+      "attack_type": "invalid_address",
+      "timestamp": "2026-03-04T12:00:08",
+      "success": true,
+      "valid_json": true,
+      "userop": {
+        "sender": "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+        "nonce": "0",
+        "callData": "0x",
+        "callGasLimit": "100000",
+        "verificationGasLimit": "100000",
+        "preVerificationGas": "100000",
+        "maxFeePerGas": "1000000000",
+        "maxPriorityFeePerGas": "1000000000",
+        "signature": "0xffff"
+      }
+    },
+    {
+      "index": 9,
+      "attack_type": "nonce_manipulation",
+      "timestamp": "2026-03-04T12:00:09",
+      "success": true,
+      "valid_json": true,
+      "userop": {
+        "sender": "0x3333333333333333333333333333333333333333",
+        "nonce": "0",
+        "initCode": "0x",
+        "callData": "0x",
+        "callGasLimit": "50000",
+        "verificationGasLimit": "50000",
+        "preVerificationGas": "21000",
+        "maxFeePerGas": "2000000000",
+        "maxPriorityFeePerGas": "1000000000",
+        "paymasterAndData": "0x",
+        "signature": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "index": 10,
+      "attack_type": "signature_forgery",
+      "timestamp": "2026-03-04T12:00:10",
+      "success": true,
+      "valid_json": true,
+      "userop": {
+        "sender": "0x4444444444444444444444444444444444444444",
+        "nonce": "1",
+        "callData": "0x",
+        "callGasLimit": "100000",
+        "verificationGasLimit": "100000",
+        "preVerificationGas": "21000",
+        "maxFeePerGas": "10000000000",
+        "maxPriorityFeePerGas": "5000000000",
+        "signature": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  ]
+}
