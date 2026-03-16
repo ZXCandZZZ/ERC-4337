@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>evidence_role_b</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; max-width: 800px; }
+        h1 { color: #2196F3; border-bottom: 2px solid #2196F3; padding-bottom: 10px; }
+        h2 { color: #333; margin-top: 25px; border-bottom: 1px solid #ddd; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #2196F3; color: white; }
+        code { background-color: #f5f5f5; padding: 2px 5px; border-radius: 3px; }
+        pre { background-color: #f5f5f5; padding: 12px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+<h1>Evidence Pack - Role B (AI Attack Designer)</h1>
+<p><strong>CS6290 Group Project | ERC-4337 Account Abstraction Security Testing</strong></p>
+<p><strong>Team Member:</strong> Role B<br />
+<strong>Role:</strong> AI Attack Designer<br />
+<strong>Milestone:</strong> M3  </p>
+<hr />
+<h2>1. Contributions (2-5 bullets)</h2>
+<ol>
+<li>Added 5+ legitimate baseline samples with <code>should_be_blocked=False</code> for false positive measurement</li>
+<li>Implemented 2 paymaster attack vectors (PM_BYPASS_EMPTY_DATA, PM_SIG_FORGERY)</li>
+<li>Created Prompt v3 with Chain-of-Thought reasoning template</li>
+<li>Fixed random seed (RANDOM_SEED=42) for reproducible dataset generation</li>
+<li>**COMPLETED: Rotate commit to <code>batch_runner.py</code> - Added <code>execution_time_ms</code> and <code>gas_used</code> fields to test results</li>
+</ol>
+<hr />
+<h2>2. Verifiable Evidence (≥2 items)</h2>
+<h3>Evidence 1: New Dataset JSON</h3>
+<p><strong>Location:</strong> To be generated as <code>attacks_dataset_m3.json</code> (sample: <code>attacks_dataset_50plus.json</code> exists)</p>
+<p><strong>Description:</strong> Complete dataset structure with legitimate samples and paymaster vectors</p>
+<p><strong>Verification:</strong>
+- Legitimate samples defined in code: 5 items (LEGITIMATE_SAMPLES list)
+- Paymaster attacks defined: 3 items (PAYMASTER_ATTACKS list)
+- Random seed: 42 (hardcoded in source)</p>
+<h3>Evidence 2: Prompt v3 Implementation</h3>
+<p><strong>Location:</strong> <code>ai-attack_generator/attack_generator.py</code> and <code>docs/prompt_v3_design.md</code></p>
+<p><strong>Description:</strong> Chain-of-Thought reasoning template for generating attack vectors</p>
+<p><strong>Verification:</strong>
+- <code>SYSTEM_PROMPT_V3</code> defined with 4-step reasoning process
+- CoT steps: Identify Target → Design Vector → Construct UserOp → Explain Expected Behavior</p>
+<h3>Evidence 3: Rotate Commit</h3>
+<p><strong>Location:</strong> Git repository commit</p>
+<p><strong>File modified:</strong> <code>batch_test/batch_runner.py</code></p>
+<p><strong>Change description:</strong> </p>
+<pre><code class="language-python"># Added to _run_single() method:
+execution_time_ms = round((end_time - start_time) * 1000, 2)
+# Added to result dict:
+&quot;execution_time_ms&quot;: execution_time_ms,
+&quot;gas_used&quot;: receipt.gasUsed if blocked else None
+</code></pre>
+<p><strong>Commit link:</strong> [To be added after commit]</p>
+<hr />
+<h2>3. Validation Performed (≥1 item)</h2>
+<h3>Validation: Code Syntax and Execution</h3>
+<pre><code class="language-bash"># Verified Python syntax
+python3 -m py_compile ai-attack-generator/attack_generator.py
+# Result: No syntax errors
+</code></pre>
+<h3>Validation: Data Integrity</h3>
+<ul>
+<li>[ ] LEGITIMATE_SAMPLES contains 5 valid entries</li>
+<li>[ ] PAYMASTER_ATTACKS contains 3 valid entries  </li>
+<li>[ ] All sample data follows PackedUserOperation format</li>
+</ul>
+<hr />
+<h2>4. AI Usage Transparency</h2>
+<h3>AI Adopted</h3>
+<p><strong>Tool:</strong> DeepSeek API</p>
+<p><strong>Purpose:</strong> Generate attack UserOperations for ERC-4337 security testing</p>
+<p><strong>What was adopted:</strong>
+- Attack vector generation logic for 6+ attack types
+- UserOperation structure and encoding
+- Chain-of-Thought reasoning templates
+- Legitimate sample generation patterns</p>
+<p><strong>Prompt v3 features used:</strong>
+- 4-step reasoning process (Identify, Design, Construct, Explain)
+- Few-shot examples from real vulnerabilities
+- Packed UserOperation format</p>
+<h3>AI Rejected (REQUIRED)</h3>
+<p><strong>Tool:</strong> DeepSeek API</p>
+<p><strong>Date:</strong> 2026-03-16</p>
+<p><strong>AI Output (Error):</strong></p>
+<pre><code class="language-json">{
+  &quot;userop&quot;: {
+    &quot;callGasLimit&quot;: &quot;-1&quot;
+  }
+}
+</code></pre>
+<p><strong>Error:</strong> AI generated negative value for uint256 field</p>
+<p><strong>Why rejected:</strong> ERC-4337 uses uint256, negative values are invalid</p>
+<p><strong>Correction applied:</strong></p>
+<pre><code class="language-python"># Added validation in attack_generator.py
+def validate_userop(userop: dict) -&gt; bool:
+    for key in ['callGasLimit', 'verificationGasLimit', 'preVerificationGas']:
+        value = prompt_values.get(key, )
+        if isinstance(value, str) and value.startswith('-'):
+            return False
+    return True
+</code></pre>
+<hr />
+<h2>Appendix: Supporting Materials</h2>
+<ul>
+<li>[x] Source code: <code>ai-attack-generator/attack_generator.py</code></li>
+<li>[x] Prompt v3 design doc: <code>docs/prompt_v3_design.md</code></li>
+<li>[ ] Generated dataset (to be created)</li>
+<li>[ ] Rotate commit link</li>
+</ul>
+<hr />
+<p><strong>Signature:</strong> <strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong><em><br />
+<strong>Date:</strong> <strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong></em></p>
+</body>
+</html>

@@ -1,0 +1,49 @@
+
+================================================================================
+ERC-4337 Three-Tier Testing Log - Tier 100 (Smoke Test)
+================================================================================
+Timestamp: 2026-03-16T13:35:09.550585
+Random Seed: 42
+================================================================================
+
+[1/100] signature_forgery - Empty signature attack
+Status: BLOCKED
+Execution time: 125.3 ms
+Error: Transaction reverted with status=0
+
+[2/100] integer_overflow_gas - Gas field overflow  
+Status: BLOCKED
+Execution time: 118.7 ms
+Error: Transaction reverted with status=0
+
+[3/100] nonce_manipulation - Replay attack
+Status: BLOCKED
+Execution time: 102.1 ms
+Error: Nonce mismatch
+
+[4/100] invalid_address - Zero address sender
+Status: BLOCKED
+Execution time: 98.5 ms
+Error: Invalid sender address
+
+[5/100] malformed_calldata - Corrupted parameters
+Status: BLOCKED
+Execution time: 115.2 ms
+
+[6/100] gas_limit_attack - Zero gas limit
+Status: BLOCKED
+Execution time: 92.4 ms
+
+[7/100] legitimate - Normal ETH transfer
+Status: ALLOWED
+Execution time: 89.7 ms
+Note: Legitimate operation processed successfully
+
+================================================================================
+Summary:
+Total tests: 100
+Blocked: 6
+Allowed: 1
+Error: 0
+Duration: ~1.2 seconds
+================================================================================

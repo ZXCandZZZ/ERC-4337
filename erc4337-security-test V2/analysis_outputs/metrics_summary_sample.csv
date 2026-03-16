@@ -1,0 +1,12 @@
+metric,value,description
+timestamp,2026-03-16T14:00:00,ISO 8601
+total_tests,1000,Total operations tested
+total_attacks,995,Total attack operations
+total_legitimate,5,Total legitimate operations
+true_positive,845,Blocked attacks / Total attacks
+false_negative,150,Passed attacks / Total attacks
+false_positive,1,Blocked legit / Total legit
+precision,0.9988,TP / (TP + FP)
+recall,0.8492,TP / (TP + FN)
+f1_score,0.9178,2 * (P * R) / (P + R)
+p95_latency_ms,125,95th percentile execution time

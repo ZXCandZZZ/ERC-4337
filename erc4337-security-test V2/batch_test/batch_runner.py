@@ -78,7 +78,9 @@ class BatchRunner:
         nonce = max(0, current_nonce + int(attack.nonce_offset))
 
         gas_price = self.w3.eth.gas_price
-        verification_gas = int(DEFAULT_VERIFICATION_GAS_LIMIT * attack.verification_gas_limit_factor)
+        verification_gas = int(
+            DEFAULT_VERIFICATION_GAS_LIMIT * attack.verification_gas_limit_factor
+        )
         call_gas = int(DEFAULT_CALL_GAS_LIMIT * attack.call_gas_limit_factor)
 
         account_gas_limits = self._pack_uint128_pair(verification_gas, call_gas)
@@ -151,6 +153,7 @@ class BatchRunner:
 
     def _run_single(self, attack: AttackVector) -> Dict[str, Any]:
         tx_hash_hex: Optional[str] = None
+        start_time = time.time()
 
         try:
             op = self._construct_user_op(attack)
@@ -166,10 +169,20 @@ class BatchRunner:
             tx_hash_hex = tx_hash.hex()
             receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
 
+            end_time = time.time()
+            execution_time_ms = round((end_time - start_time) * 1000, 2)
+
             blocked = receipt.status == 0
             status = "BLOCKED" if blocked else "VULNERABLE"
             expected = "BLOCKED" if attack.should_be_blocked else "ALLOWED"
-            verdict = "PASS" if ((blocked and attack.should_be_blocked) or (not blocked and not attack.should_be_blocked)) else "FAIL"
+            verdict = (
+                "PASS"
+                if (
+                    (blocked and attack.should_be_blocked)
+                    or (not blocked and not attack.should_be_blocked)
+                )
+                else "FAIL"
+            )
 
             return {
                 "name": attack.name,
@@ -180,10 +193,14 @@ class BatchRunner:
                 "verdict": verdict,
                 "tx_hash": tx_hash_hex,
                 "error": None if not blocked else "Transaction reverted with status=0",
+                "execution_time_ms": execution_time_ms,
+                "gas_used": receipt.gasUsed,
             }
 
         except exceptions.ContractLogicError as e:
-            # ContractLogicError is an explicit on-chain rejection.
+            end_time = time.time()
+            execution_time_ms = round((end_time - start_time) * 1000, 2)
+
             blocked = True
             status = "BLOCKED"
             expected = "BLOCKED" if attack.should_be_blocked else "ALLOWED"
@@ -197,13 +214,15 @@ class BatchRunner:
                 "verdict": verdict,
                 "tx_hash": tx_hash_hex,
                 "error": str(e),
+                "execution_time_ms": execution_time_ms,
             }
         except Exception as e:
+            end_time = time.time()
+            execution_time_ms = round((end_time - start_time) * 1000, 2)
+
             exc_info = self._extract_exception_info(e)
             expected = "BLOCKED" if attack.should_be_blocked else "ALLOWED"
 
-            # Revert-like RPC errors (e.g. Web3RPCError code=-32603) mean on-chain rejection,
-            # so classify as BLOCKED, not framework ERROR.
             if self._is_revert_like_exception(exc_info):
                 verdict = "PASS" if attack.should_be_blocked else "FAIL"
                 return {
@@ -215,9 +234,9 @@ class BatchRunner:
                     "verdict": verdict,
                     "tx_hash": tx_hash_hex,
                     "error": str(e),
+                    "execution_time_ms": execution_time_ms,
                 }
 
-            # Non-revert exceptions are true runner/runtime errors.
             return {
                 "name": attack.name,
                 "type": attack.attack_type,
@@ -227,6 +246,7 @@ class BatchRunner:
                 "verdict": "FAIL",
                 "tx_hash": tx_hash_hex,
                 "error": str(e),
+                "execution_time_ms": execution_time_ms,
             }
 
     def execute_batch(self, attacks: List[AttackVector]) -> List[Dict[str, Any]]:

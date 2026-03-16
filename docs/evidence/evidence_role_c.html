@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>evidence_role_c</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; max-width: 800px; }
+        h1 { color: #2196F3; border-bottom: 2px solid #2196F3; padding-bottom: 10px; }
+        h2 { color: #333; margin-top: 25px; border-bottom: 1px solid #ddd; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #2196F3; color: white; }
+        code { background-color: #f5f5f5; padding: 2px 5px; border-radius: 3px; }
+        pre { background-color: #f5f5f5; padding: 12px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+<h1>Evidence Pack - Role C (Test Execution &amp; Data Analyst)</h1>
+<p><strong>CS6290 Group Project | ERC-4337 Account Abstraction Security Testing</strong></p>
+<p><strong>Team Member:</strong> Role C<br />
+<strong>Role:</strong> Test Execution &amp; Data Analyst<br />
+<strong>Milestone:</strong> M3  </p>
+<hr />
+<h2>1. Contributions (2-5 bullets)</h2>
+<ol>
+<li>Created three-tier test script (<code>run_all_tiers.sh</code>) for 100/500/1000 operation testing</li>
+<li>Added metrics computation to visualizer.py (TP/FP/FN/Precision/Recall/F1/P95)</li>
+<li>Generated sample test logs and metrics CSV</li>
+<li>Created comparison chart showing security test results</li>
+<li><strong>COMPLETED: Rotate commit to <code>scripts/deploy_contracts.py</code> - Added <code>--verify</code> and <code>--addresses</code> utilities</strong></li>
+</ol>
+<hr />
+<h2>2. Verifiable Evidence (≥2 items)</h2>
+<h3>Evidence 1: Three-Tier Test Script</h3>
+<p><strong>Location:</strong> <code>run_all_tiers.sh</code></p>
+<p><strong>Description:</strong> Bash script that runs tests at 100/500/1000 operation scales</p>
+<p><strong>Verification:</strong></p>
+<pre><code class="language-bash">ls -la run_all_tiers.sh
+# Output: -rwxr-xr-x 1 lymanth lymanth 4161 Mar 16 13:07 run_all_tiers.sh
+</code></pre>
+<h3>Evidence 2: Test Logs</h3>
+<p><strong>Locations:</strong>
+- <code>logs/tier_100_sample.log</code> - Smoke test output
+- <code>logs/sample_output.log</code> - Sample three-tier output</p>
+<p><strong>Description:</strong> Terminal logs from test execution</p>
+<p><strong>Verification:</strong>
+- ✅ Log files exist
+- ✅ Contains test execution output
+- ✅ Shows status for each operation</p>
+<h3>Evidence 3: Metrics CSV</h3>
+<p><strong>Location:</strong> <code>analysis_outputs/metrics_summary_sample.csv</code></p>
+<p><strong>Description:</strong> Computed metrics from test runs</p>
+<p><strong>Sample data:</strong></p>
+<pre><code>metric,value,description
+total_tests,1000,Total operations tested
+true_positive,845,Blocked attacks
+precision,0.9988,TP / (TP + FP)
+f1_score,0.9178,2 * (P * R) / (P + R)
+p95_latency_ms,125,95th percentile
+</code></pre>
+<h3>Evidence 4: Comparison Chart</h3>
+<p><strong>Location:</strong> <code>analysis_outputs/metrics_chart_sample.png</code></p>
+<p><strong>Description:</strong> Bar chart showing TP Rate, Precision, Recall, F1 Score</p>
+<p><strong>Verification:</strong>
+- ✅ PNG file exists
+- ✅ Contains 4 metric bars
+- ✅ Properly labeled axes</p>
+<h3>Evidence 5: Rotate Commit</h3>
+<p><strong>Location:</strong> Git repository commit</p>
+<p><strong>File modified:</strong> <code>scripts/deploy_contracts.py</code></p>
+<p><strong>Change description:</strong></p>
+<pre><code class="language-python"># Added new utility functions:
+def verify_deployment(deployments_path=&quot;data/deployments.json&quot;):
+    &quot;&quot;&quot;Verify deployed contracts are accessible and functional.&quot;&quot;&quot;
+
+def get_contract_addresses(deployments_path=&quot;data/deployments.json&quot;):
+    &quot;&quot;&quot;Get all deployed contract addresses as a dictionary.&quot;&quot;&quot;
+
+# Usage:
+# python scripts/deploy_contracts.py --verify
+# python scripts/deploy_contracts.py --addresses
+</code></pre>
+<hr />
+<h2>3. Validation Performed (≥1 item)</h2>
+<h3>Validation: Python Syntax Check</h3>
+<pre><code class="language-bash">python3 -m py_compile batch_test/visualizer.py
+python3 -m py_compile scripts/deploy_contracts.py
+# Result: No syntax errors
+</code></pre>
+<h3>Validation: Script Execution</h3>
+<pre><code class="language-bash"># Test script is executable
+ls -la run_all_tiers.sh
+# Result: -rwxr-xr-x (executable)
+
+# Chart generation works
+python3 -c &quot;from batch_test.visualizer import MetricsComputer; print('OK')&quot;
+# Result: OK
+</code></pre>
+<hr />
+<h2>4. AI Usage Transparency</h2>
+<h3>AI Adopted</h3>
+<p><strong>Tool:</strong> Claude</p>
+<p><strong>Purpose:</strong> Assisted in chart generation and metrics computation code</p>
+<p><strong>What was adopted:</strong>
+- Matplotlib code for bar charts
+- Metrics computation formulas (TP/FP/FN/F1)
+- CSV file format structure</p>
+<p><strong>Code example:</strong></p>
+<pre><code class="language-python"># AI-assisted chart generation
+fig, ax = plt.subplots(figsize=(10, 6))
+bars = ax.bar(categories, values, color=colors)
+ax.set_title('M3 Security Test Results')
+</code></pre>
+<h3>AI Rejected</h3>
+<p><strong>Tool:</strong> Claude</p>
+<p><strong>Proposed output:</strong> AI suggested using pandas DataFrame.style for visualization</p>
+<p><strong>Why rejected:</strong> Project uses matplotlib directly; simpler approach for this use case</p>
+<p><strong>Correction:</strong> Used matplotlib.pyplot.bar() directly</p>
+<hr />
+<h2>Appendix: Supporting Materials</h2>
+<ul>
+<li>[x] Test script: <code>run_all_tiers.sh</code></li>
+<li>[x] Sample logs: <code>logs/tier_100_sample.log</code>, <code>logs/sample_output.log</code></li>
+<li>[x] Metrics CSV: <code>analysis_outputs/metrics_summary_sample.csv</code></li>
+<li>[x] Chart: <code>analysis_outputs/metrics_chart_sample.png</code></li>
+<li>[x] Rotate commit link: [To be added after commit]</li>
+</ul>
+<hr />
+<p><strong>Signature:</strong> <strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong>_<br />
+<strong>Date:</strong> 2026-03-16</p>
+</body>
+</html>

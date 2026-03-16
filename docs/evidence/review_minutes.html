@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>review_minutes</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; max-width: 800px; }
+        h1 { color: #2196F3; border-bottom: 2px solid #2196F3; padding-bottom: 10px; }
+        h2 { color: #333; margin-top: 25px; border-bottom: 1px solid #ddd; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #2196F3; color: white; }
+        code { background-color: #f5f5f5; padding: 2px 5px; border-radius: 3px; }
+        pre { background-color: #f5f5f5; padding: 12px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+<h1>Team Review Meeting Minutes</h1>
+<p><strong>CS6290 Group Project | ERC-4337 Account Abstraction Security Testing</strong></p>
+<p><strong>Milestone 3 - Team Review</strong></p>
+<hr />
+<h2>Meeting Information</h2>
+<p><strong>Date:</strong> 2026-03-16<br />
+<strong>Time:</strong> 14:00-15:30<br />
+<strong>Location:</strong> Online (Zoom)<br />
+<strong>Attendees:</strong>
+- Role A (PM / Threat Alignment Lead)
+- Role B (AI Attack Designer)
+- Role C (Test Execution &amp; Data Analyst)
+- Role D ( Report &amp; PPT Lead)</p>
+<hr />
+<h2>Agenda</h2>
+<ol>
+<li>Review M3 deliverables status</li>
+<li>Identify gaps and blockers</li>
+<li>Assign remediation tasks</li>
+<li>Confirm final timeline</li>
+</ol>
+<hr />
+<h2>Discussion Notes</h2>
+<h3>1. Deliverables Status</h3>
+<p><strong>Role A - Threat Alignment:</strong>
+- ✅ Threat→Test Coverage Matrix completed (docs/threat_test_coverage_matrix.md)
+- ✅ Gap List documented with P0/P1/P2 priorities
+- ⏳ Review minutes to be finalized</p>
+<p><strong>Role B - AI Attack Designer:</strong>
+- ✅ Prompt v3 with Chain-of-Thought implemented (ai-attack-generator/attack_generator.py)
+- ✅ 5 legitimate baseline samples added (LEGITIMATE_SAMPLES)
+- ✅ 2 paymaster attack vectors added (PAYMASTER_ATTACKS)
+- ✅ Fixed random seed (RANDOM_SEED = 43)
+- ✅ Rotate commit to batch_runner.py - <strong>DONE</strong></p>
+<p><strong>Role C - Test Execution &amp; Data Analyst:</strong>
+- ✅ Three-tier test script created (run_all_tiers.sh)
+- ⏳ Tests need to be executed
+- ⏳ Metrics to be computed
+- ⏳ Charts to be generated
+- ✅ Rotate commit to scripts/deploy_contracts.py - <strong>DONE</strong></p>
+<p><strong>Role D - Report &amp; PPT Lead:</strong>
+- ✅ Final report draft completed (docs/final_report.md)
+- ✅ Spec-Driven mapping completed (docs/spec_driven_mapping.md)
+- ✅ Presentation slides created (docs/presentation.md)
+- ⏳ PDFs to be generated</p>
+<h3>2. Decisions Made</h3>
+<p><strong>Decision 1: Test Execution Schedule</strong>
+- <strong>Decision:</strong> Execute all three tiers by end of week
+- <strong>Owner:</strong> Role C
+- <strong>Deadline:</strong> 2026-03-17</p>
+<p><strong>Decision 2: AI Error Documentation</strong>
+- <strong>Decision:</strong> Document AI error correction case study for Evidence Pack
+- <strong>Owner:</strong> Role B
+- <strong>Covered in:</strong> docs/evidence/ai_error_correction.md
+- <strong>Deadline:</strong> 2026-03-17</p>
+<p><strong>Decision 3: Final Integration</strong>
+- <strong>Decision:</strong> All Evidence Packs completed by 2026-03-18
+- <strong>Owner:</strong> All team members
+- <strong>Deadline:</strong> 2026-03-18</p>
+<h3>3. Gap List &amp; Remediation</h3>
+<table>
+<thead>
+<tr>
+<th>Gap ID</th>
+<th>Description</th>
+<th>Priority</th>
+<th>Owner</th>
+<th>Deadline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G-P0-001</td>
+<td>Multi-vector combined attacks</td>
+<td>P0</td>
+<td>B</td>
+<td>-</td>
+</tr>
+<tr>
+<td>G-P0-002</td>
+<td>1000+ operation stability test</td>
+<td>P0</td>
+<td>C</td>
+<td>2026-03-17</td>
+</tr>
+<tr>
+<td>G-P1-001</td>
+<td>Additional paymaster variants</td>
+<td>P1</td>
+<td>B</td>
+<td>2026-03-17</td>
+</tr>
+<tr>
+<td>G-P1-002</td>
+<td>P95 latency baseline comparison</td>
+<td>P1</td>
+<td>C</td>
+<td>2016-03-17</td>
+</tr>
+<tr>
+<td>G-P2-001</td>
+<td>Gas consumption analysis</td>
+<td>P2</td>
+<td>D</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3>4. Action Items</h3>
+<p><strong>Immediate Actions:</strong></p>
+<ol>
+<li><strong>Role C</strong>: Execute <code>./run_all_tiers.sh</code> with DEEPSEEK_API_KEY set</li>
+<li><strong>Role B</strong>: Verify batch_runner.py commit is properly tracked</li>
+<li><strong>Role D</strong>: Generate PDFs using pandoc/marp</li>
+<li><strong>All</strong>: Complete individual Evidence Pack sections</li>
+</ol>
+<hr />
+<h2>Meeting Adjourned: 15:30</h2>
+<p><strong>Next Meeting:</strong> 2026-03-18 (Final Review before submission)</p>
+<hr />
+<p><strong>Minutes recorded by:</strong> Role A</p>
+<h2>Attendees</h2>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Name</th>
+<th>Present</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A - PM / Threat Alignment</td>
+<td>[Name]</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>B - AI Attack Designer</td>
+<td>[Name]</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>C - Test Execution &amp; Data Analyst</td>
+<td>[Name]</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>D - Report &amp; PPT Lead</td>
+<td>[Name]</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Agenda</h2>
+<ol>
+<li>Review M3 deliverable status</li>
+<li>Identify gaps and blockers</li>
+<li>Assign remediation tasks</li>
+<li>Confirm timeline</li>
+</ol>
+<hr />
+<h2>Discussion Items</h2>
+<h3>Item 1: Coverage Matrix Review</h3>
+<p><strong>Presented by:</strong> Role A</p>
+<p><strong>Status:</strong> [Complete / In Progress / Blocked]</p>
+<p><strong>Key Points:</strong>
+- [Point 1]
+- [Point 2]</p>
+<p><strong>Decisions:</strong>
+- [Decision 1]</p>
+<hr />
+<h3>Item 2: Test Execution Status</h3>
+<p><strong>Presented by:</strong> Role C</p>
+<p><strong>Status:</strong> [Complete / In Progress / Blocked]</p>
+<p><strong>Key Points:</strong>
+- [Point 1]
+- [Point 2]</p>
+<p><strong>Decisions:</strong>
+- [Decision 1]</p>
+<hr />
+<h3>Item 3: Documentation Status</h3>
+<p><strong>Presented by:</strong> Role D</p>
+<p><strong>Status:</strong> [Complete / In Progress / Blocked]</p>
+<p><strong>Key Points:</strong>
+- [Point 1]
+- [Point 2]</p>
+<p><strong>Decisions:</strong>
+- [Decision 1]</p>
+<hr />
+<h2>Action Items</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Task</th>
+<th>Owner</th>
+<th>Deadline</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>[Task description]</td>
+<td>[Role]</td>
+<td>[Date]</td>
+<td>☐ Pending</td>
+</tr>
+<tr>
+<td>2</td>
+<td>[Task description]</td>
+<td>[Role]</td>
+<td>[Date]</td>
+<td>☐ Pending</td>
+</tr>
+<tr>
+<td>3</td>
+<td>[Task description]</td>
+<td>[Role]</td>
+<td>[Date]</td>
+<td>☐ Pending</td>
+</tr>
+<tr>
+<td>4</td>
+<td>[Task description]</td>
+<td>[Role]</td>
+<td>[Date]</td>
+<td>☐ Pending</td>
+</tr>
+<tr>
+<td>5</td>
+<td>[Task description]</td>
+<td>[Role]</td>
+<td>[Date]</td>
+<td>☐ Pending</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Gap List (P0/P1/P2)</h2>
+<h3>P0 - Critical</h3>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Owner</th>
+<th>Resolution Plan</th>
+<th>Deadline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[Gap description]</td>
+<td>[Role]</td>
+<td>[How to fix]</td>
+<td>[Date]</td>
+</tr>
+</tbody>
+</table>
+<h3>P1 - Important</h3>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Owner</th>
+<th>Resolution Plan</th>
+<th>Deadline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[Gap description]</td>
+<td>[Role]</td>
+<td>[How to fix]</td>
+<td>[Date]</td>
+</tr>
+</tbody>
+</table>
+<h3>P2 - Nice to Have</h3>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Owner</th>
+<th>Resolution Plan</th>
+<th>Deadline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[Gap description]</td>
+<td>[Role]</td>
+<td>[How to fix]</td>
+<td>[Date]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Timeline Confirmation</h2>
+<table>
+<thead>
+<tr>
+<th>Milestone</th>
+<th>Target Date</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All code complete</td>
+<td>[Date]</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>All tests executed</td>
+<td>[Date]</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Evidence Packs ready</td>
+<td>[Date]</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>Final review</td>
+<td>[Date]</td>
+<td>☐</td>
+</tr>
+<tr>
+<td>M3 Submission</td>
+<td>[Date]</td>
+<td>☐</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Next Meeting</h2>
+<p><strong>Date:</strong> [Date]<br />
+<strong>Time:</strong> [Time]<br />
+<strong>Agenda:</strong> [Topics]</p>
+<hr />
+<h2>Notes</h2>
+<ul>
+<li>[Note 1]</li>
+<li>[Note 2]</li>
+<li>[Note 3]</li>
+</ul>
+<hr />
+<p><strong>Meeting recorded by:</strong> Role A<br />
+<strong>Minutes distributed:</strong> [Date]</p>
+<hr />
+<h2>Screenshot Placeholder</h2>
+<blockquote>
+<p>📸 Insert screenshot of meeting (Zoom/Teams/Gather) here</p>
+</blockquote>
+<p><img alt="Meeting Screenshot" src="./meeting_screenshot.png" /></p>
+<hr />
+<p><strong>Document Owner:</strong> Role A (PM / Threat Alignment Lead)</p>
+</body>
+</html>

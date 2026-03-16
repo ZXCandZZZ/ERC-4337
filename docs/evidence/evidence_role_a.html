@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>evidence_role_a</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; max-width: 800px; }
+        h1 { color: #2196F3; border-bottom: 2px solid #2196F3; padding-bottom: 10px; }
+        h2 { color: #333; margin-top: 25px; border-bottom: 1px solid #ddd; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #2196F3; color: white; }
+        code { background-color: #f5f5f5; padding: 2px 5px; border-radius: 3px; }
+        pre { background-color: #f5f5f5; padding: 12px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+<h1>Evidence Pack - Role A (PM / Threat Alignment)</h1>
+<p><strong>CS6290 Group Project | ERC-4337 Account Abstraction Security Testing</strong></p>
+<p><strong>Team Member:</strong> Role A<br />
+<strong>Role:</strong> PM / Threat Alignment Lead<br />
+<strong>Milestone:</strong> M3  </p>
+<hr />
+<h2>1. Contributions (2-5 bullets)</h2>
+<ol>
+<li>Created Threat→Test Coverage Matrix mapping all 4 threat categories to 27 specific test cases</li>
+<li>Identified and documented Gap List with P0/P1/P2 priority assignments</li>
+<li>Led Team Review meeting on 2026-03-16 with documented decisions and deadlines</li>
+<li>Coordinated requirements with Role B (legitimate samples, paymaster vectors)</li>
+<li>Provided matrix and gap list to Role D for Final Report integration</li>
+</ol>
+<hr />
+<h2>2. Verifiable Evidence (≥2 items)</h2>
+<h3>Evidence 1: Coverage Matrix Document</h3>
+<p><strong>Location:</strong> <code>docs/threat_test_coverage_matrix.md</code></p>
+<p><strong>Description:</strong> Complete mapping of Threat Model V1 to test cases</p>
+<p><strong>Verification:</strong> 
+- ✅ 4 threat categories documented (T1-T4)
+- ✅ 27 test cases mapped
+- ✅ Results recorded for each test</p>
+<h3>Evidence 2: Gap List</h3>
+<p><strong>Location:</strong> Section in <code>docs/threat_test_coverage_matrix.md</code></p>
+<p><strong>Description:</strong> Prioritized list of uncovered test scenarios</p>
+<p><strong>Verification:</strong>
+- ✅ P0 gaps identified: 2 (Multi-vector attacks, 1000+ stability)
+- ✅ P1 gaps identified: 3 (Paymaster variants, P95 latency, Edge case signatures)
+- ✅ P2 gaps identified: 3 (Gas price manipulation, Cross-contract reentrancy, Formal verification)
+- ✅ Each gap assigned to B or C</p>
+<h3>Evidence 3: Team Review Minutes</h3>
+<p><strong>Location:</strong> <code>docs/evidence/review_minutes.md</code></p>
+<p><strong>Date:</strong> 2026-03-16</p>
+<p><strong>Attendees:</strong> A, B, C, D</p>
+<p><strong>Decisions:</strong>
+- Decision 1: Test Execution Schedule - Owner: C - Deadline: 2026-03-17
+- Decision 2: AI Error Documentation - Owner: B - Deadline: 2026-03-17
+- Decision 3: Final Integration - Owner: All - Deadline: 2026-03-18</p>
+<hr />
+<h2>3. Validation Performed (≥1 item)</h2>
+<h3>Validation: Gap List vs Actual Commits</h3>
+<table>
+<thead>
+<tr>
+<th>Gap ID</th>
+<th>Assigned To</th>
+<th>Expected Deliverable</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G-P0-001</td>
+<td>B</td>
+<td>Multi-vector attacks</td>
+<td>✅ PAYMASTER_ATTACKS added</td>
+</tr>
+<tr>
+<td>G-P0-002</td>
+<td>C</td>
+<td>1000+ stability test</td>
+<td>✅ run_all_tiers.sh created</td>
+</tr>
+<tr>
+<td>G-P1-001</td>
+<td>B</td>
+<td>Paymaster variants</td>
+<td>✅ 3 paymaster attacks added</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>4. AI Usage Transparency</h2>
+<h3>AI Adopted</h3>
+<p><strong>Tool:</strong> Claude</p>
+<p><strong>Purpose:</strong> Assisted in creating the coverage matrix structure and documentation</p>
+<p><strong>What was adopted:</strong> 
+- Matrix table format suggestion
+- Threat category organization
+- Gap list prioritization framework</p>
+<p><strong>Prompt used:</strong></p>
+<pre><code>&quot;Create a threat-to-test coverage matrix structure for ERC-4337 security testing with 4 threat categories&quot;
+</code></pre>
+<h3>AI Rejected</h3>
+<p><strong>Tool:</strong> Claude</p>
+<p><strong>Proposed output:</strong> AI suggested adding formal verification as a test category</p>
+<p><strong>Why rejected:</strong> Formal verification is out of scope for M3; focus is on empirical testing with AI-generated attacks</p>
+<p><strong>Correction:</strong> Limited test categories to practical fuzzing approaches</p>
+<hr />
+<h2>Appendix: Supporting Materials</h2>
+<ul>
+<li>[x] Coverage Matrix: <code>docs/threat_test_coverage_matrix.md</code></li>
+<li>[x] Review minutes: <code>docs/evidence/review_minutes.md</code></li>
+<li>[x] File ownership: <code>docs/FILE_OWNERSHIP.md</code></li>
+<li>[x] Team assignment: <code>docs/M3_TEAM_ASSIGNMENT.md</code></li>
+</ul>
+<hr />
+<p><strong>Signature:</strong> <strong><em>_</em></strong><strong><em>_</em></strong><strong><em>_</em></strong>_<br />
+<strong>Date:</strong> 2026-03-16</p>
+</body>
+</html>
