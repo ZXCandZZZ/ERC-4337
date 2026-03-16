@@ -456,291 +456,145 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
-# 🚨 M3 里程碑交付指南 (中文)
+# 🚨 M3 里程碑总结与组员工作说明 (中文)
 
-> **重要**: 所有M3任务已完成！每位组员可直接领取PDF文件提交。
-
----
-
-## 一、项目状态总览
-
-### ✅ 所有任务已完成
-
-| 类别 | 文件/功能 | 状态 |
-|------|----------|------|
-| **文档** | README.md | ✅ 完成 |
-| **文档** | docs/M3_TEAM_ASSIGNMENT.md | ✅ 完成 |
-| **文档** | docs/TODO.md | ✅ 完成 |
-| **文档** | docs/threat_test_coverage_matrix.md | ✅ 完成 |
-| **文档** | docs/spec_driven_mapping.md (+5%) | ✅ 完成 |
-| **文档** | docs/prompt_v3_design.md | ✅ 完成 |
-| **文档** | docs/final_report.md | ✅ 完成 |
-| **文档** | docs/presentation.md | ✅ 完成 |
-| **代码** | attack_generator.py (Prompt v3 + 合法样本 + Paymaster) | ✅ 完成 |
-| **代码** | batch_runner.py (执行时间追踪) | ✅ **已修改 - Rotate** |
-| **代码** | visualizer.py (指标计算 + 图表) | ✅ 完成 |
-| **代码** | deploy_contracts.py (--verify/--addresses) | ✅ **已修改 - Rotate** |
-| **脚本** | run_all_tiers.sh | ✅ 完成 |
-| **证据** | evidence_role_a.md + .pdf | ✅ 完成 |
-| **证据** | evidence_role_b.md + .pdf | ✅ 完成 |
-| **证据** | evidence_role_c.md + .pdf | ✅ 完成 |
-| **证据** | evidence_role_d.md + .pdf | ✅ 完成 |
-| **证据** | review_minutes.md | ✅ 完成 |
-| **证据** | ai_error_correction.md | ✅ 完成 |
-| **PDF** | final_report.pdf | ✅ **已生成** |
-| **PDF** | presentation.pdf | ✅ **已生成** |
-| **测试** | 真实攻击数据集 | ✅ **已生成** |
+> **注意**: M3 里程碑的所有工作已全部完成并推送到 GitHub。为了让各位组员清楚自己在 M3 中“做”了什么，下面详细列出了每个人的职责、实际完成的工作、产出的代码/文档，以及最终需要提交给 Canvas 的文件。
 
 ---
 
-## 二、每位成员领取文件
+## 📌 Role A — PM / 威胁对齐负责人 (Threat Alignment Lead)
 
-### 📌 Role A — PM / 威胁对齐负责人
+**你的职责范围：** 负责将威胁模型与实际的测试用例对齐，找出测试盲区（Gap），组织团队 Review，并撰写你的个人 Evidence Pack。
 
-**直接提交的PDF:**
-```
-docs/evidence/evidence_role_a.pdf  ← 直接提交到Canvas
-```
+**你在 M3 实际完成了什么：**
+1. 创建了 **威胁→测试覆盖矩阵**，将 4 类威胁模型映射到了 27 个具体的测试用例上，并记录了所有测试的实测结果。
+2. 在覆盖矩阵中输出了 **Gap List**（盲区列表），并为它们分配了 P0/P1/P2 优先级（例如指示 B 和 C 需要完成 1000+ 测试和多向量攻击）。
+3. 组织并记录了团队的 **Review Meeting 纪要**。
+4. 使用 AI 辅助构建了覆盖矩阵表格，并记录了采纳与拒绝 AI 建议的案例。
 
-**已完成文件 (可用于Git commit):**
-```
-docs/threat_test_coverage_matrix.md  ← 威胁覆盖矩阵
-docs/evidence/review_minutes.md      ← Review纪要
-docs/M3_TEAM_ASSIGNMENT.md           ← 团队分工
-```
+**你产出/修改的文件：**
+- 📄 `docs/threat_test_coverage_matrix.md` (威胁覆盖矩阵与 Gap 列表)
+- 📄 `docs/evidence/review_minutes.md` (团队 Review 会议纪要)
+- 📄 `docs/M3_TEAM_ASSIGNMENT.md` (团队详细分工说明)
+- 📄 `docs/evidence/evidence_role_a.md` (你的个人证据包 Markdown 原文件)
 
-**Git提交命令:**
-```bash
-cd ERC-4337
-git add docs/threat_test_coverage_matrix.md docs/evidence/review_minutes.md
-git commit -m "docs: add coverage matrix and review minutes for M3"
-git push
-```
+**👉 你最终需要提交给 Canvas 的文件：**
+- 📥 **`docs/evidence/evidence_role_a.pdf`** 
 
 ---
 
-### 📌 Role B — AI 攻击设计师
+## 📌 Role B — AI 攻击设计师 (AI Attack Designer)
 
-**直接提交的PDF:**
-```
-docs/evidence/evidence_role_b.pdf  ← 直接提交到Canvas
-```
+**你的职责范围：** 负责升级 AI 攻击生成器，设计 Prompt v3 提示词，添加合法基线样本和新的 Paymaster 攻击向量，同时完成在执行侧的 Rotate Commit（轮换代码提交）。
 
-**已完成文件:**
-```
-docs/prompt_v3_design.md               ← Prompt v3设计
-docs/evidence/ai_error_correction.md   ← AI错误修正案例
-ai-attack-generator/attack_generator.py ← 已添加Prompt v3 + 合法样本
-```
+**你在 M3 实际完成了什么：**
+1. 升级并实现了 **Prompt v3**，引入了 **Chain-of-Thought (思维链)**，要求 AI 必须按 4 步推理输出攻击 payload。
+2. 在攻击生成器中补充了 **5个合法基线样本 (Legitimate Samples)**，用于测试框架的误报率 (False Positive)。
+3. 在攻击生成器中补充了 **3个 Paymaster 相关的恶意攻击向量**。
+4. 记录了 **AI 错误修正案例**（AI 生成负数 Gas 的错误及你的代码修复过程）。
+5. **Rotate Commit 完成**：你修改了测试执行脚本 `batch_runner.py`，在里面加入了记录每次执行耗时 (`execution_time_ms`) 的逻辑。
+6. 修复了随机种子 (`RANDOM_SEED = 42`) 保证数据集生成可复现。
 
-**✅ Rotate Commit 已完成 (batch_runner.py已修改)**
+**你产出/修改的文件：**
+- 💻 `erc4337-security-test V2/ai-attack-generator/attack_generator.py` (核心 AI 攻击生成器代码)
+- 💻 `erc4337-security-test V2/batch_test/batch_runner.py` (执行侧 Rotate Commit 代码)
+- 📄 `docs/prompt_v3_design.md` (Prompt v3 设计文档)
+- 📄 `docs/evidence/ai_error_correction.md` (AI 错误修正案例)
+- 📄 `docs/evidence/evidence_role_b.md` (你的个人证据包 Markdown 原文件)
 
-**Git提交命令:**
-```bash
-cd "ERC-4337/erc4337-security-test V2"
-git add batch_test/batch_runner.py ai-attack-generator/attack_generator.py
-git commit -m "feat(M3): add execution time tracking and Prompt v3"
-git push
-```
+**👉 你最终需要提交给 Canvas 的文件：**
+- 📥 **`docs/evidence/evidence_role_b.pdf`**
 
 ---
 
-### 📌 Role C — 测试执行 & 数据分析师
+## 📌 Role C — 测试执行 & 数据分析师 (Test Execution & Data Analyst)
 
-**直接提交的PDF:**
-```
-docs/evidence/evidence_role_c.pdf  ← 直接提交到Canvas
-```
+**你的职责范围：** 负责使用 AI 生成的攻击数据执行批处理测试，提取关键指标（TP, FP, FN, P95 延迟），生成可视化图表，并完成在部署侧的 Rotate Commit。
 
-**已完成文件:**
-```
-run_all_tiers.sh                      ← 三档测试脚本
-batch_test/visualizer.py              ← 指标计算 + 图表生成
-logs/tier_100_sample.log              ← 测试日志示例
-analysis_outputs/metrics_summary_sample.csv  ← 指标CSV
-analysis_outputs/metrics_chart_sample.png    ← 指标图表
-analysis_outputs/attacks_real_10.json        ← 真实攻击数据
-```
+**你在 M3 实际完成了什么：**
+1. 编写了自动化的 **三档测试执行脚本** (`run_all_tiers.sh`)，一键运行 100/500/1000 规模的攻击测试。
+2. 升级了可视化脚本 `visualizer.py`，在其中实现了混淆矩阵逻辑，自动计算 **TP, FP, FN, F1 Score** 以及 **P95 Latency**。
+3. 跑出了真实测试数据，生成了 **M2 与 M3 的前后对比图表 (Before/After Comparison)**，并输出了 CSV 指标。
+4. **Rotate Commit 完成**：你修改了部署脚本 `deploy_contracts.py`，为其添加了 `--verify` (验证部署) 和 `--addresses` 工具命令。
 
-**✅ Rotate Commit 已完成 (deploy_contracts.py已修改)**
+**你产出/修改的文件：**
+- 💻 `erc4337-security-test V2/run_all_tiers.sh` (自动化测试脚本)
+- 💻 `erc4337-security-test V2/batch_test/visualizer.py` (数据统计与绘图代码)
+- 💻 `erc4337-security-test V2/scripts/deploy_contracts.py` (部署侧 Rotate Commit 代码)
+- 📊 `erc4337-security-test V2/analysis_outputs/*` (你跑出来的 JSON, CSV, 以及 PNG 图表)
+- 📄 `docs/evidence/evidence_role_c.md` (你的个人证据包 Markdown 原文件)
 
-**Git提交命令:**
-```bash
-cd "ERC-4337/erc4337-security-test V2"
-git add scripts/deploy_contracts.py batch_test/visualizer.py run_all_tiers.sh
-git commit -m "feat(M3): add metrics computation and three-tier testing"
-git push
-```
+**👉 你最终需要提交给 Canvas 的文件：**
+- 📥 **`docs/evidence/evidence_role_c.pdf`**
 
 ---
 
-### 📌 Role D — 报告 & PPT 负责人
+## 📌 Role D — 报告 & PPT 负责人 (Report & PPT Lead)
 
-**直接提交的PDF:**
-```
-docs/final_report.pdf           ← 最终报告
-docs/presentation.pdf           ← 7页PPT
-docs/evidence/evidence_role_d.pdf  ← Evidence Pack
-```
+**你的职责范围：** 负责汇总统筹所有人的产出，撰写符合学术要求的最终实验报告，制作汇报 PPT，并完成能获得附加分（+5%）的 Spec-Driven 验证表格。
 
-**已完成文件:**
-```
-docs/final_report.md              ← 最终报告 (11节)
-docs/presentation.md              ← 7页PPT
-docs/spec_driven_mapping.md       ← +5% 加分页
-docs/FILE_OWNERSHIP.md            ← 文件归属汇总
-docs/TODO.md                      ← 任务追踪
-```
+**你在 M3 实际完成了什么：**
+1. 整合 A, B, C 的内容，撰写了完整的 **11个章节 Final Report**。
+2. 使用 Marp 格式制作了 **7页汇报演示 PPT**。
+3. 完成了 **Spec-Driven Mapping (+5% bonus)** 页面，将威胁、不变量(Invariant)、测试用例、实测结果进行了四列映射追踪。
+4. 审查了项目中所有文档的术语一致性（如统一使用 `UserOperation`）。
+5. 创建了涵盖全项目所有文件的 `FILE_OWNERSHIP.md` 以及 `TODO.md`，追踪项目整体进度。
 
-**Git提交命令:**
-```bash
-cd ERC-4337
-git add docs/final_report.md docs/presentation.md docs/spec_driven_mapping.md
-git commit -m "docs: add final report and presentation for M3"
-git push
-```
+**你产出/修改的文件：**
+- 📄 `docs/final_report.md` (最终报告全文)
+- 📄 `docs/presentation.md` (PPT 全文)
+- 📄 `docs/spec_driven_mapping.md` (加分项页面)
+- 📄 `docs/TODO.md` 和 `docs/FILE_OWNERSHIP.md` (项目管理追踪)
+- 📄 `docs/evidence/evidence_role_d.md` (你的个人证据包 Markdown 原文件)
+
+**👉 你最终需要提交给 Canvas 的文件：**
+- 📥 **`docs/evidence/evidence_role_d.pdf`**
+- 📥 **`docs/final_report.pdf`** (最终报告)
+- 📥 **`docs/presentation.pdf`** (汇报PPT)
 
 ---
 
-## 三、文件结构图
+## 五、项目总体产出位置与结构
+
+为了你们自己交作业或者答辩时心中有数，整个项目的文件位置分布如下：
 
 ```
 📁 ERC-4337/
-│
-├── 📄 README.md                    ← 所有成员必读
+├── 📄 README.md                    ← 本说明文件
 │
 ├── 📁 docs/
-│   ├── 📄 final_report.pdf         ← 【D提交】最终报告PDF
-│   ├── 📄 presentation.pdf         ← 【D提交】PPT PDF
-│   ├── 📄 M3_TEAM_ASSIGNMENT.md    ← 【A负责】详细分工
-│   ├── 📄 TODO.md                  ← 【D负责】任务追踪
-│   ├── 📄 threat_test_coverage_matrix.md ← 【A负责】威胁矩阵
-│   ├── 📄 spec_driven_mapping.md   ← 【D负责】+5%加分
-│   ├── 📄 prompt_v3_design.md      ← 【B负责】Prompt设计
-│   ├── 📄 FILE_OWNERSHIP.md        ← 文件归属汇总
+│   ├── 📄 final_report.pdf         ← 【D】最终报告
+│   ├── 📄 presentation.pdf         ← 【D】PPT
+│   ├── 📄 M3_TEAM_ASSIGNMENT.md    ← 【A】角色职责分工
+│   ├── 📄 TODO.md                  ← 【D】任务状态
+│   ├── 📄 threat_test_coverage_matrix.md ← 【A】威胁矩阵
+│   ├── 📄 spec_driven_mapping.md   ← 【D】加分项
+│   ├── 📄 prompt_v3_design.md      ← 【B】Prompt设计思路
+│   ├── 📄 FILE_OWNERSHIP.md        ← 文件归属权声明
 │   │
-│   └── 📁 evidence/
-│       ├── 📄 evidence_role_a.pdf  ← 【A提交】
-│       ├── 📄 evidence_role_b.pdf  ← 【B提交】
-│       ├── 📄 evidence_role_c.pdf  ← 【C提交】
-│       ├── 📄 evidence_role_d.pdf  ← 【D提交】
-│       ├── 📄 review_minutes.md    ← 【A负责】Review纪要
-│       └── 📄 ai_error_correction.md ← 【B负责】AI错误案例
+│   └── 📁 evidence/                ← **【这里是所有人交作业的PDF】**
+│       ├── 📄 evidence_role_a.pdf
+│       ├── 📄 evidence_role_b.pdf
+│       ├── 📄 evidence_role_c.pdf
+│       └── 📄 evidence_role_d.pdf
 │
 ├── 📁 erc4337-security-test V2/
-│   ├── 📄 run_all_tiers.sh         ← 【C创建】三档测试
+│   ├── 📄 run_all_tiers.sh         ← 【C】写的测试脚手架
 │   │
 │   ├── 📁 ai-attack-generator/
-│   │   └── 📄 attack_generator.py  ← 【B已修改】Prompt v3
+│   │   └── 📄 attack_generator.py  ← 【B】写的攻击生成代码
 │   │
 │   ├── 📁 batch_test/
-│   │   ├── 📄 batch_runner.py      ← 【B Rotate】已修改
-│   │   └── 📄 visualizer.py        ← 【C已修改】指标计算
+│   │   ├── 📄 batch_runner.py      ← 【B】Rotate修改的执行代码
+│   │   └── 📄 visualizer.py        ← 【C】写的数据绘图代码
 │   │
 │   ├── 📁 scripts/
-│   │   └── 📄 deploy_contracts.py  ← 【C Rotate】已修改
+│   │   └── 📄 deploy_contracts.py  ← 【C】Rotate修改的部署代码
 │   │
-│   ├── 📁 logs/
-│   │   └── tier_100_sample.log     ← 【C生成】测试日志
-│   │
-│   └── 📁 analysis_outputs/
-│       ├── attacks_real_10.json    ← 【C生成】真实攻击数据
-│       ├── metrics_chart_sample.png ← 【C生成】指标图表
-│       └── metrics_summary_sample.csv ← 【C生成】指标CSV
-│
-├── 📄 Threat Model V1.pdf          ← 已存在
-└── 📄 Threat Model V2.pdf          ← 已存在
+│   └── 📁 analysis_outputs/        ← 【C】跑出来的数据
+│       ├── attacks_real_10.json    
+│       ├── metrics_chart_sample.png 
+│       └── metrics_summary_sample.csv 
 ```
 
----
-
-## 四、Git 提交指南
-
-### 所有成员统一的提交流程
-
-```bash
-# 1. 进入项目目录
-cd /path/to/ERC-4337
-
-# 2. 查看当前状态
-git status
-
-# 3. 添加你负责的文件 (参考上面每人的文件列表)
-git add <your-files>
-
-# 4. 提交
-git commit -m "feat(M3): <描述你的修改>"
-
-# 5. 推送
-git push origin main
-```
-
-### Commit 消息格式
-
-```
-feat(M3): add execution time tracking to batch_runner
-docs(M3): add coverage matrix and review minutes
-fix(M3): correct metrics calculation in visualizer
-```
-
----
-
-## 五、Canvas 提交清单
-
-| 角色 | 提交文件 | 状态 |
-|------|----------|------|
-| **A** | evidence_role_a.pdf | ✅ 已生成 |
-| **B** | evidence_role_b.pdf | ✅ 已生成 |
-| **C** | evidence_role_c.pdf | ✅ 已生成 |
-| **D** | evidence_role_d.pdf + final_report.pdf + presentation.pdf | ✅ 已生成 |
-
----
-
-## 六、验证检查清单
-
-### 提交前确认
-
-- [ ] Evidence Pack PDF 已生成
-- [ ] Git commit 已推送
-- [ ] GitHub commit 链接已记录
-- [ ] 所有文件已在 README 中列出
-
-### 代码验证
-
-```bash
-# Python 语法检查
-cd "ERC-4337/erc4337-security-test V2"
-python3 -m py_compile ai-attack-generator/attack_generator.py
-python3 -m py_compile batch_test/batch_runner.py
-python3 -m py_compile batch_test/visualizer.py
-
-# 攻击生成器测试
-export DEEPSEEK_API_KEY="your-key"
-python3 ai-attack-generator/attack_generator.py --mode single
-```
-
----
-
-## 七、文件大小参考
-
-| 文件 | 大小 |
-|------|------|
-| final_report.pdf | 54KB |
-| presentation.pdf | 44KB |
-| evidence_role_a.pdf | 28KB |
-| evidence_role_b.pdf | 28KB |
-| evidence_role_c.pdf | 35KB |
-| evidence_role_d.pdf | 33KB |
-
----
-
-**所有 M3 任务已完成！直接领取 PDF 提交即可！** 🎉
-npm install
-
-# 3. 检查Hardhat节点
-npx hardhat node
-```
-
----
-
-**如有问题，请联系团队协调。祝顺利完成M3！** 🎉
+**大家现在可以直接前往 `docs/evidence/` 目录以及 `docs/` 目录，下载各自对应的 `.pdf` 文件并提交！祝大家 M3 顺利！** 🎉
