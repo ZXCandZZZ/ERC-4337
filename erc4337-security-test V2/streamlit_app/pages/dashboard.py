@@ -53,6 +53,3 @@ def render() -> None:
 
     st.divider()
     _render_recent_runs(root)
-
-    st.divider()
-    st.info("治理提醒：当前编译器存在双轨（Hardhat 0.8.19 vs Deploy Script 0.8.28），请在 Config 页面统一口径。")
