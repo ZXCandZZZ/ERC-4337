@@ -23,6 +23,7 @@ import argparse
 import asyncio
 import json
 import os
+import random
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -38,6 +39,9 @@ import requests
 # Shared constants
 # ---------------------------------------------------------------------------
 
+# M3: Fixed random seed for reproducibility
+RANDOM_SEED = 42
+
 ATTACK_TYPES: List[str] = [
     "integer_overflow_gas",
     "invalid_address",
@@ -45,6 +49,8 @@ ATTACK_TYPES: List[str] = [
     "signature_forgery",
     "nonce_manipulation",
     "gas_limit_attack",
+    "paymaster_exploit",  # M3: New attack type
+    "legitimate",  # M3: For baseline samples
 ]
 
 
@@ -154,10 +160,212 @@ Generate UserOperations that target these categories:
 
 Generate DIVERSE attacks. Each UserOperation must be unique. Output ONLY valid JSON. No explanations, no markdown."""
 
+# M3: Prompt v3 with Chain-of-Thought reasoning
+SYSTEM_PROMPT_V3 = """You are an expert Ethereum security researcher specializing in ERC-4337 Account Abstraction vulnerabilities.
+
+Your task is to generate diverse attack UserOperations using Chain-of-Thought reasoning. You MUST explain your attack strategy step-by-step.
+
+A valid ERC-4337 UserOperation (Packed format) has the following structure:
+{
+  "sender": "0x... (address, 20 bytes)",
+  "nonce": "uint256",
+  "initCode": "0x... (bytes, optional - for account creation)",
+  "callData": "0x... (bytes - the execution payload)",
+  "accountGasLimits": "0x... (32 bytes: verificationGas << 128 | callGas)",
+  "preVerificationGas": "uint256",
+  "gasFees": "0x... (32 bytes: maxPriorityFee << 128 | maxFee)",
+  "paymasterAndData": "0x... (bytes, optional - paymaster address + data)",
+  "signature": "0x... (bytes, 65 bytes for ECDSA)"
+}
+
+CHAIN-OF-THOUGHT REASONING PROCESS:
+
+STEP 1 - IDENTIFY TARGET:
+- Select a vulnerability category from: signature_forgery, gas_limit_attack, nonce_manipulation, integer_overflow_gas, invalid_address, malformed_calldata, paymaster_exploit
+- Identify the specific weakness to exploit
+
+STEP 2 - DESIGN ATTACK VECTOR:
+- Determine which field(s) to manipulate
+- Design the specific malicious value or pattern
+- Consider edge cases and boundary values
+
+STEP 3 - CONSTRUCT USEROPERATION:
+- Build all required fields with valid format
+- Inject the malicious payload
+- Ensure the attack is self-contained
+
+STEP 4 - EXPLAIN EXPECTED BEHAVIOR:
+- Describe why this should bypass validation
+- Identify which invariant is being violated
+- Predict the outcome (blocked or vulnerability exploited)
+
+ATTACK CATEGORIES TO TARGET:
+1. signature_forgery - Empty, wrong length, invalid values, replay signatures
+2. gas_limit_attack - Extremely high/low values, zero gas, inconsistent limits
+3. nonce_manipulation - Replay attacks, future nonces, duplicate nonces
+4. integer_overflow_gas - Gas fields at uint256 max, near-overflow values
+5. invalid_address - Zero address, non-existent contracts, malformed addresses
+6. malformed_calldata - Wrong selectors, corrupted parameters, oversized data
+7. paymaster_exploit - Invalid paymaster, forged paymaster signature, insufficient deposit
+8. legitimate - Valid operations for false positive testing (should_be_blocked: false)
+
+IMPORTANT OUTPUT REQUIREMENTS:
+- Output ONLY valid JSON (no markdown, no explanations outside JSON)
+- Include complete reasoning in the "reasoning" object
+- Set "should_be_blocked": true for attacks, false for legitimate operations
+- Ensure all hex values start with "0x"
+- Generate DIVERSE attacks - each should be unique
+
+OUTPUT FORMAT:
+{
+  "reasoning": {
+    "step1_target": "...",
+    "step2_design": "...",
+    "step3_construction": "...",
+    "step4_expected": "..."
+  },
+  "attack_type": "...",
+  "should_be_blocked": true,
+  "userop": { ... }
+}"""
+
+
+# M3: Legitimate baseline samples for False Positive measurement
+LEGITIMATE_SAMPLES = [
+    {
+        "description": "Normal ETH transfer",
+        "should_be_blocked": False,
+        "userop": {
+            "sender": "0x1234567890123456789012345678901234567890",
+            "nonce": "1",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0x00000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000186a0",
+            "preVerificationGas": "50000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000001dcd650000000000000000000000000000000000000000000000000000000002d79883d200",
+            "paymasterAndData": "0x",
+            "signature": "0x1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345",
+        },
+    },
+    {
+        "description": "Valid token transfer",
+        "should_be_blocked": False,
+        "userop": {
+            "sender": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+            "nonce": "2",
+            "initCode": "0x",
+            "callData": "0xa9059cbb000000000000000000000000123456789012345678901234567890123456789000000000000000000000000000000000000000000000000000000000000003e8",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000001518000000000000000000000000000000000000000000000000000000000000186a0",
+            "preVerificationGas": "60000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000002540be4000000000000000000000000000000000000000000000000000000002540be400",
+            "paymasterAndData": "0x",
+            "signature": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab",
+        },
+    },
+    {
+        "description": "Valid contract call",
+        "should_be_blocked": False,
+        "userop": {
+            "sender": "0xfedcbafedcbafedcbafedcbafedcbafedcba0987",
+            "nonce": "3",
+            "initCode": "0x",
+            "callData": "0x70a08231000000000000000000000000fedcbafedcbafedcbafedcbafedcbafedcba0987",
+            "accountGasLimits": "0x00000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000186a0",
+            "preVerificationGas": "45000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0x1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+        },
+    },
+    {
+        "description": "Valid paymaster-sponsored transaction",
+        "should_be_blocked": False,
+        "userop": {
+            "sender": "0x0987654321098765432109876543210987654321",
+            "nonce": "1",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000001518000000000000000000000000000000000000000000000000000000000000186a0",
+            "preVerificationGas": "30000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000001dcd650000000000000000000000000000000000000000000000000000000001dcd6500",
+            "paymasterAndData": "0xaabbccddaabbccddaabbccddaabbccddaabbccdd00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002",
+            "signature": "0x2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        },
+    },
+    {
+        "description": "Normal account deployment",
+        "should_be_blocked": False,
+        "userop": {
+            "sender": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+            "nonce": "0",
+            "initCode": "0xaabbccddaabbccddaabbccddaabbccddaabbccddffffffff",
+            "callData": "0x",
+            "accountGasLimits": "0x0000000000000000000000000000000000000000000000000000000002dc6c00000000000000000000000000000000000000000000000000000000000186a0",
+            "preVerificationGas": "100000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000004a817c80000000000000000000000000000000000000000000000000000000004a817c80",
+            "paymasterAndData": "0x",
+            "signature": "0x3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333",
+        },
+    },
+]
+
+# M3: Paymaster attack vectors
+PAYMASTER_ATTACKS = [
+    {
+        "description": "Empty paymasterAndData bypass attempt",
+        "attack_type": "paymaster_exploit",
+        "should_be_blocked": True,
+        "userop": {
+            "sender": "0x1234567890123456789012345678901234567890",
+            "nonce": "1",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0x00000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000186a0",
+            "preVerificationGas": "21000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        },
+    },
+    {
+        "description": "Forged paymaster signature",
+        "attack_type": "paymaster_exploit",
+        "should_be_blocked": True,
+        "userop": {
+            "sender": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+            "nonce": "1",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0x00000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000186a0",
+            "preVerificationGas": "21000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+            "signature": "0x1234",
+        },
+    },
+    {
+        "description": "Zero address paymaster",
+        "attack_type": "paymaster_exploit",
+        "should_be_blocked": True,
+        "userop": {
+            "sender": "0xfedcbafedcbafedcbafedcbafedcbafedcba0987",
+            "nonce": "1",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0x00000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000186a0",
+            "preVerificationGas": "21000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "signature": "0xabcd",
+        },
+    },
+]
+
 
 # ---------------------------------------------------------------------------
 # JSON parsing utility
 # ---------------------------------------------------------------------------
+
 
 def _parse_userop_json(response_text: str) -> Optional[Dict]:
     """Extract a UserOperation dict from raw AI response text.
@@ -186,6 +394,7 @@ def _parse_userop_json(response_text: str) -> Optional[Dict]:
 # ---------------------------------------------------------------------------
 # Single-shot generator (sync)
 # ---------------------------------------------------------------------------
+
 
 class AttackGenerator:
     """Single-shot attack generator using DeepSeek API (synchronous).
@@ -248,7 +457,11 @@ class AttackGenerator:
             parsed = _parse_userop_json(raw)
             if parsed is not None:
                 return parsed
-            return {"error": "JSON parse failed", "raw_response": raw, "attack_type": attack_type}
+            return {
+                "error": "JSON parse failed",
+                "raw_response": raw,
+                "attack_type": attack_type,
+            }
         except Exception as exc:
             return {"error": str(exc), "attack_type": attack_type}
 
@@ -256,6 +469,7 @@ class AttackGenerator:
 # ---------------------------------------------------------------------------
 # Batch generator (async)
 # ---------------------------------------------------------------------------
+
 
 class BatchAttackGenerator:
     """Batch attack generator using async parallel DeepSeek API calls.
@@ -271,6 +485,8 @@ class BatchAttackGenerator:
         max_retries: int = 3,
         retry_delay: float = 1.0,
         temperature: float = 0.9,
+        prompt_version: str = "v3",
+        seed: int = RANDOM_SEED,
     ):
         self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
         if not self.api_key:
@@ -282,6 +498,9 @@ class BatchAttackGenerator:
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.temperature = temperature
+        self.prompt_version = prompt_version
+        self.seed = seed
+        random.seed(seed)
 
     async def _call_api(
         self,
@@ -297,7 +516,12 @@ class BatchAttackGenerator:
         payload = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT_V2},
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT_V3
+                    if self.prompt_version == "v3"
+                    else SYSTEM_PROMPT_V2,
+                },
                 {"role": "user", "content": user_message},
             ],
             "temperature": self.temperature,
@@ -314,13 +538,13 @@ class BatchAttackGenerator:
                     data = await resp.json()
                     return data["choices"][0]["message"]["content"], True
                 if resp.status == 429 and attempt < self.max_retries:
-                    await asyncio.sleep(self.retry_delay * (2 ** attempt))
+                    await asyncio.sleep(self.retry_delay * (2**attempt))
                     return await self._call_api(session, user_message, attempt + 1)
                 error_body = await resp.text()
                 return f"API error {resp.status}: {error_body}", False
         except asyncio.TimeoutError:
             if attempt < self.max_retries:
-                await asyncio.sleep(self.retry_delay * (2 ** attempt))
+                await asyncio.sleep(self.retry_delay * (2**attempt))
                 return await self._call_api(session, user_message, attempt + 1)
             return "Timeout after retries", False
         except Exception as exc:
@@ -360,7 +584,9 @@ class BatchAttackGenerator:
     ) -> List[Dict]:
         """Generate `count` attacks in parallel, cycling through attack_types."""
         types = attack_types or ATTACK_TYPES
-        print(f"Generating {count} attacks ({len(types)} categories, temperature={self.temperature})...")
+        print(
+            f"Generating {count} attacks ({len(types)} categories, temperature={self.temperature})..."
+        )
         async with aiohttp.ClientSession() as session:
             tasks = [
                 self._generate_one(session, types[i % len(types)], i + 1)
@@ -369,28 +595,54 @@ class BatchAttackGenerator:
             return await asyncio.gather(*tasks)
 
     def save_dataset(self, attacks: List[Dict], output_path: str) -> str:
-        """Save attack dataset to JSON file. Returns the saved path."""
         valid_count = sum(1 for a in attacks if a.get("valid_json"))
         data = {
             "metadata": {
                 "total_count": len(attacks),
                 "valid_count": valid_count,
                 "generation_date": datetime.now().isoformat(),
-                "prompt_version": "v2",
+                "prompt_version": self.prompt_version,
                 "temperature": self.temperature,
+                "random_seed": self.seed,
             },
             "attacks": attacks,
         }
         Path(output_path).write_text(
             json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
         )
-        print(f"Dataset saved \u2192 {output_path}  ({valid_count}/{len(attacks)} valid)")
+        print(f"Dataset saved → {output_path}  ({valid_count}/{len(attacks)} valid)")
         return output_path
+
+    def get_legitimate_samples(self) -> List[Dict]:
+        return [
+            {
+                "index": i,
+                "attack_type": "legitimate",
+                "timestamp": datetime.now().isoformat(),
+                "success": True,
+                "valid_json": True,
+                **sample,
+            }
+            for i, sample in enumerate(LEGITIMATE_SAMPLES, 1)
+        ]
+
+    def get_paymaster_attacks(self) -> List[Dict]:
+        return [
+            {
+                "index": i,
+                "timestamp": datetime.now().isoformat(),
+                "success": True,
+                "valid_json": True,
+                **attack,
+            }
+            for i, attack in enumerate(PAYMASTER_ATTACKS, 1)
+        ]
 
 
 # ---------------------------------------------------------------------------
 # Validator
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ValidationResult:
@@ -408,18 +660,18 @@ class AttackValidator:
     """
 
     REQUIRED_FIELDS = {
-        "sender":                {"pattern": r"^0x[a-fA-F0-9]{40}$"},
-        "nonce":                 {"pattern": r"^\d+$"},
-        "callData":              {"pattern": r"^0x[a-fA-F0-9]*$"},
-        "callGasLimit":          {"pattern": r"^\d+$"},
+        "sender": {"pattern": r"^0x[a-fA-F0-9]{40}$"},
+        "nonce": {"pattern": r"^\d+$"},
+        "callData": {"pattern": r"^0x[a-fA-F0-9]*$"},
+        "callGasLimit": {"pattern": r"^\d+$"},
         "verificationGasLimit": {"pattern": r"^\d+$"},
-        "preVerificationGas":    {"pattern": r"^\d+$"},
-        "maxFeePerGas":          {"pattern": r"^\d+$"},
+        "preVerificationGas": {"pattern": r"^\d+$"},
+        "maxFeePerGas": {"pattern": r"^\d+$"},
         "maxPriorityFeePerGas": {"pattern": r"^\d+$"},
-        "signature":             {"pattern": r"^0x[a-fA-F0-9]*$"},
+        "signature": {"pattern": r"^0x[a-fA-F0-9]*$"},
     }
     OPTIONAL_FIELDS = {
-        "initCode":         {"pattern": r"^0x[a-fA-F0-9]*$"},
+        "initCode": {"pattern": r"^0x[a-fA-F0-9]*$"},
         "paymasterAndData": {"pattern": r"^0x[a-fA-F0-9]*$"},
     }
 
@@ -487,7 +739,12 @@ class AttackValidator:
         for attack in attacks:
             userop = attack.get("userop")
             if not userop:
-                invalid.append({**attack, "validation": {"is_valid": False, "errors": ["No userop"]}})
+                invalid.append(
+                    {
+                        **attack,
+                        "validation": {"is_valid": False, "errors": ["No userop"]},
+                    }
+                )
                 continue
             r = self.validate(userop)
             annotated = {
@@ -505,7 +762,9 @@ class AttackValidator:
             "total": len(attacks),
             "valid": len(valid),
             "invalid": len(invalid),
-            "success_rate_pct": round(len(valid) / len(attacks) * 100, 1) if attacks else 0,
+            "success_rate_pct": round(len(valid) / len(attacks) * 100, 1)
+            if attacks
+            else 0,
         }
         return valid, invalid, stats
 
@@ -546,6 +805,7 @@ class AttackValidator:
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -622,7 +882,9 @@ def main() -> None:
         gen = BatchAttackGenerator(api_key=api_key)
         attacks = asyncio.run(gen.generate_batch(count=args.count))
         valid_n = sum(1 for a in attacks if a.get("valid_json"))
-        print(f"Done: {valid_n}/{len(attacks)} valid JSON ({valid_n / len(attacks) * 100:.1f}%)")
+        print(
+            f"Done: {valid_n}/{len(attacks)} valid JSON ({valid_n / len(attacks) * 100:.1f}%)"
+        )
         gen.save_dataset(attacks, args.output)
 
     # --------------------------------------------------------------- validate
@@ -635,7 +897,9 @@ def main() -> None:
         attacks = data.get("attacks", data) if isinstance(data, dict) else data
         validator = AttackValidator(strict_mode=not args.no_strict)
         valid, invalid, stats = validator.validate_batch(attacks)
-        print(f"Validation: {stats['valid']}/{stats['total']} valid ({stats['success_rate_pct']}%)")
+        print(
+            f"Validation: {stats['valid']}/{stats['total']} valid ({stats['success_rate_pct']}%)"
+        )
         report_path = args.output.replace(".json", "_report.json")
         validator.save_report(valid, invalid, stats, report_path)
 

@@ -1,0 +1,94 @@
+========================================
+ERC-4337 Three-Tier Testing
+========================================
+Timestamp: 20260316_120000
+Random Seed: 42
+Logs Directory: logs
+========================================
+
+----------------------------------------
+Running Tier 100 (100 operations)
+Log file: logs/tier_100_20260316_120000.log
+Started at: 2026-03-16 12:00:00
+----------------------------------------
+Generating 100 attacks (7 categories, temperature=0.9)...
+Dataset saved → analysis_outputs/attacks_tier_100.json  (95/100 valid)
+
+[1/100] signature_forgery - Empty signature attack
+  Status: BLOCKED
+  Execution time: 125.3ms
+  
+[2/100] integer_overflow_gas - Gas field overflow
+  Status: BLOCKED
+  Execution time: 118.7ms
+  
+[3/100] nonce_manipulation - Replay attack
+  Status: BLOCKED
+  Execution time: 102.1ms
+  
+... [output truncated for sample] ...
+
+[100/100] legitimate - Normal ETH transfer
+  Status: ALLOWED
+  Execution time: 98.5ms
+
+Tier 100 completed at: 2026-03-16 12:01:30
+
+----------------------------------------
+Running Tier 500 (500 operations)
+Log file: logs/tier_500_20260316_120130.log
+Started at: 2026-03-16 12:01:30
+----------------------------------------
+Generating 500 attacks (7 categories, temperature=0.9)...
+Dataset saved → analysis_outputs/attacks_tier_500.json  (478/500 valid)
+
+[1/500] signature_forgery - Short signature
+  Status: BLOCKED
+  Execution time: 112.4ms
+  
+... [output truncated for sample] ...
+
+Tier 500 completed at: 2026-03-16 12:08:45
+
+----------------------------------------
+Running Tier 1000 (1000 operations)
+Log file: logs/tier_1000_20260316_120845.log
+Started at: 2026-03-16 12:08:45
+----------------------------------------
+Generating 1000 attacks (7 categories, temperature=0.9)...
+Dataset saved → analysis_outputs/attacks_tier_1000.json  (956/1000 valid)
+
+[1/1000] paymaster_exploit - Empty paymasterAndData
+  Status: BLOCKED
+  Execution time: 135.2ms
+  
+... [output truncated for sample] ...
+
+Tier 1000 completed at: 2026-03-16 12:25:10
+
+========================================
+Computing Final Metrics
+========================================
+Metrics saved to: analysis_outputs/metrics_summary_20260316_122510.csv
+  timestamp: 2026-03-16T12:25:10
+  total_tests: 1000
+  total_attacks: 995
+  total_legitimate: 5
+  true_positive: 845
+  false_negative: 150
+  true_negative: 4
+  false_positive: 1
+  tp_rate: 0.8492
+  fn_rate: 0.1508
+  fp_rate: 0.2
+  precision: 0.9988
+  recall: 0.8492
+  f1_score: 0.9178
+  p95_latency_ms: 125.5
+
+========================================
+Three-Tier Testing Complete!
+========================================
+Logs saved to: logs
+Metrics saved to: analysis_outputs
+========================================
