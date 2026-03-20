@@ -128,7 +128,6 @@ class BatchRunner:
 
     @staticmethod
     def _is_revert_like_exception(exc_info: Dict[str, Any]) -> bool:
-        code = exc_info.get("code")
         message = str(exc_info.get("message") or "").lower()
         data_text = str(exc_info.get("data") or "").lower()
         raw_text = str(exc_info.get("raw") or "").lower()
@@ -147,7 +146,7 @@ class BatchRunner:
             ]
         )
 
-        return bool(has_revert_signal or code == -32603)
+        return bool(has_revert_signal)
 
     def _run_single(self, attack: AttackVector) -> Dict[str, Any]:
         tx_hash_hex: Optional[str] = None

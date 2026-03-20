@@ -4,7 +4,7 @@ require("@nomicfoundation/hardhat-toolbox");
 module.exports = {
   // 1. 设置Solidity编译器版本（必须与ERC-4337合约版本匹配）
   solidity: {
-    version: "0.8.19",
+    version: "0.8.28",
     settings: {
       optimizer: {
         enabled: true,

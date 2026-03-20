@@ -1,0 +1,57 @@
+**/data/
+
+report/
+*.pdf
+
+# Node.js 依赖
+**/node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Hardhat 编译产物
+**/artifacts/
+**/cache/
+**/typechain/
+**/typechain-types/
+**/coverage/
+**/coverage.json
+
+# Python 依赖和缓存
+**/venv/
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.pytest_cache/
+
+# 环境变量（包含私钥，绝对不能提交）
+.env
+.env.*
+
+# IDE 配置文件
+.vscode/
+.idea/
+
+# 操作系统生成文件
+.DS_Store
+Thumbs.db
+
+# 部署与测试临时产物
+**/deployments/deployment_*.json
+**/deployments/*.log
+
+# Streamlit 临时运行文件
+**/streamlit_app/runtime/
+**/.streamlit/secrets.toml
+
+# AI 生成/分析临时产物
+**/ai-attack-generator/analysis_outputs/
+**/ai-attack-generator/ai-attack-generator/
+**/ai-attack-generator/attacks_dataset*.json
+**/attacks_dataset_report.json
+
+# 临时分析文件与截图
+anlysis.md
+tmp.md
+image.png
+img_*.png
