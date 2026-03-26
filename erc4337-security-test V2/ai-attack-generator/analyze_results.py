@@ -170,7 +170,7 @@ def main() -> None:
     parser.add_argument(
         "--input",
         type=Path,
-        default=script_dir / "attacks_dataset_50plus.json",
+        default=script_dir / "attacks_dataset_1200_clean.json",
         help="Path to attacks dataset JSON file",
     )
     parser.add_argument(

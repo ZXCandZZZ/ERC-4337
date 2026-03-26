@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import List, Optional
 
 from .runner import ProcessRunner, CommandResult
 
@@ -19,6 +20,10 @@ class AIToolService:
         mode: str = "batch",
         attack_type: str | None = None,
         api_key: str | None = None,
+        extra_args: Optional[List[str]] = None,
+        clean_output: str | None = None,
+        clean_target_count: int | None = None,
+        include_legitimate: bool = True,
     ) -> CommandResult:
         cmd = ["python", "ai-attack-generator/attack_generator.py", "--mode", mode]
 
@@ -27,11 +32,37 @@ class AIToolService:
         elif mode == "single" and attack_type:
             cmd += ["--attack-type", attack_type]
 
+        if extra_args:
+            cmd += extra_args
+
         env_api_key = api_key or os.getenv("DEEPSEEK_API_KEY", "")
         if env_api_key:
             cmd += ["--api-key", env_api_key]
 
-        return self.runner.run(cmd)
+        primary = self.runner.run(cmd)
+        if primary.returncode != 0 or not clean_output or mode != "batch":
+            return primary
+
+        clean_cmd = [
+            "python",
+            "ai-attack-generator/build_attack_dataset.py",
+            "--output",
+            clean_output,
+            "--target-count",
+            str(clean_target_count or count),
+            "--source",
+            output,
+        ]
+        if include_legitimate:
+            clean_cmd.append("--include-legitimate")
+
+        cleaned = self.runner.run(clean_cmd)
+        return CommandResult(
+            command=primary.command + ["&&"] + cleaned.command,
+            returncode=max(primary.returncode, cleaned.returncode),
+            stdout=(primary.stdout or "") + "\n\n[clean_dataset]\n" + (cleaned.stdout or ""),
+            stderr="\n\n".join(part for part in [primary.stderr, cleaned.stderr] if part),
+        )
 
     def validate_attacks(self, input_file: str) -> CommandResult:
         return self.runner.run(

@@ -9,7 +9,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "rpc_url": "http://127.0.0.1:8545",
     "batch_count": 8,
     "ai_default_count": 50,
-    "ai_dataset_output": "ai-attack-generator/attacks_dataset_50plus.json",
+    "ai_dataset_output": "ai-attack-generator/attacks_dataset_500.json",
+    "ai_clean_dataset_output": "ai-attack-generator/attacks_dataset_1200_clean.json",
     "deepseek_api_key": "",
 }
 

@@ -49,9 +49,45 @@ ATTACK_TYPES: List[str] = [
     "signature_forgery",
     "nonce_manipulation",
     "gas_limit_attack",
-    "paymaster_exploit",  # M3: New attack type
-    "legitimate",  # M3: For baseline samples
+    "paymaster_exploit",           # M3: Paymaster abuse
+    "legitimate",                  # M3: For baseline samples
+    # --- M4: Extended attack categories ---
+    "reentrancy_attack",           # M4: Cross-function reentrancy during validateUserOp / execute
+    "bundler_griefing",            # M4: Gas-wasting ops that fail on-chain after simulation passes
+    "initcode_exploit",            # M4: Malicious factory via initCode (CREATE2 salt collision / address squatting)
+    "cross_chain_replay",          # M4: Signature reuse across different chain IDs
+    "aggregator_bypass",           # M4: Exploit ERC-4337 signature aggregator callback (IAggregator)
+    "access_list_poisoning",       # M4: Storage slot inconsistency between simulation and execution
+    "calldata_bomb",               # M4: Oversized / gas-bomb callData to DoS mempool / bundler
+    "time_range_abuse",            # M5: Invalid validAfter/validUntil semantics encoded through signature context assumptions
+    "eip7702_auth_bypass",         # M5: EIP-7702 authorization/initCode confusion
+    "paymaster_postop_griefing",   # M5: postOp griefing or oversized paymaster context patterns
+    "factory_stake_bypass",        # M5: unstaked or malformed factory/initCode patterns
+    "transient_storage_collision", # M5: transient storage or bundle cross-op leakage assumptions
+    "combo_sig_nonce",             # M4: Combination: signature forgery + nonce replay
+    "combo_gas_paymaster",         # M4: Combination: gas exhaustion + paymaster exploit
+    "combo_initcode_invalid_addr", # M4: Combination: malicious initCode + zero/invalid sender address
+    "combo_7702_time_range",       # M5: 7702 authorization confusion + invalid timing assumptions
+    "combo_factory_paymaster",     # M5: malicious factory + paymaster griefing
 ]
+
+# M4: Combination (multi-vector) attack type identifiers for clear categorization
+COMBO_ATTACK_TYPES: List[str] = [
+    "combo_sig_nonce",
+    "combo_gas_paymaster",
+    "combo_initcode_invalid_addr",
+    "combo_7702_time_range",
+    "combo_factory_paymaster",
+]
+
+NUMERIC_STRING_FIELDS = {
+    "nonce",
+    "preVerificationGas",
+    "callGasLimit",
+    "verificationGasLimit",
+    "maxFeePerGas",
+    "maxPriorityFeePerGas",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -230,6 +266,85 @@ OUTPUT FORMAT:
 }"""
 
 
+# M4: Extended System Prompt v4 - covers new attack categories and combination attacks
+SYSTEM_PROMPT_V4 = """You are an elite Ethereum security researcher with deep expertise in ERC-4337 Account Abstraction (AA) vulnerabilities.
+
+Your mission: generate highly realistic, diverse malformed UserOperation objects that expose real vulnerabilities in ERC-4337 smart wallet implementations. Draw from published CVEs, audit reports (ChainSecurity, ConsenSys Diligence, OpenZeppelin) and the official ERC-4337 specification.
+
+A valid ERC-4337 PackedUserOperation has the following structure:
+{
+  "sender": "0x... (address, 20 bytes)",
+  "nonce": "uint256",
+  "initCode": "0x... (bytes, optional - factory address + calldata)",
+  "callData": "0x... (bytes - execution payload)",
+  "accountGasLimits": "0x... (bytes32: upper 128 = verificationGasLimit, lower 128 = callGasLimit)",
+  "preVerificationGas": "uint256",
+  "gasFees": "0x... (bytes32: upper 128 = maxPriorityFeePerGas, lower 128 = maxFeePerGas)",
+  "paymasterAndData": "0x... (bytes, optional: first 20 bytes = paymaster address)",
+  "signature": "0x... (bytes, 65 bytes for ECDSA)"
+}
+
+ATTACK TAXONOMY (generate exactly one per call):
+
+**TIER 1 - Single-Vector Attacks:**
+1. signature_forgery - Invalid ECDSA signatures (empty, wrong length, bad v value, zero sig)
+2. gas_limit_attack - Extreme gas values (uint256 max, zero, sub-gwei inconsistencies)
+3. nonce_manipulation - Replay nonce=0 reuse, future nonces, 2^128 key-space overflow
+4. integer_overflow_gas - Gas field arithmetic overflow near uint256 max boundary
+5. invalid_address - Zero sender, non-contract sender, create2 addr before deployment
+6. malformed_calldata - Wrong function selectors, ABI-corrupted params, reentrancy triggers
+7. paymaster_exploit - Forged paymaster sig, zero-addr paymaster, underfunded paymaster
+8. reentrancy_attack - callData that re-enters EntryPoint.handleOps during execute phase
+9. bundler_griefing - Op passes simulation but intentionally reverts on-chain (simulation-execution divergence)
+10. initcode_exploit - initCode with malicious factory, CREATE2 address squatting, initCode on existing account
+11. cross_chain_replay - Valid signature from chainId=1 reused on chainId=31337 (missing chainId binding)
+12. aggregator_bypass - Manipulate paymasterAndData to point to untrusted IAggregator contract
+13. access_list_poisoning - Storage read/write pattern that differs between simulation (eth_call) and execution (on-chain)
+14. calldata_bomb - Massive callData (>10KB) to exhaust mempool gas / bundler bandwidth
+15. time_range_abuse - Encode impossible or inconsistent validity windows, expired timing, or abuse of validationData assumptions
+16. eip7702_auth_bypass - Abuse 0x7702-style initCode/authorization confusion, repeated initialization, or missing delegate binding
+17. paymaster_postop_griefing - Craft paymasterAndData/context patterns that pressure postOp gas or refund assumptions
+18. factory_stake_bypass - Use malformed initCode or unstaked-factory-like patterns to violate sender creation expectations
+19. transient_storage_collision - Assume transient storage or bundle-shared scratch state leaks across UserOperations
+
+**TIER 2 - Combination Attacks (multi-vector, harder to detect):**
+20. combo_sig_nonce - Simultaneously: invalid signature AND replay nonce (forces bundler to evaluate both paths)
+21. combo_gas_paymaster - Simultaneously: uint256-max gas limits AND underfunded/fake paymaster address
+22. combo_initcode_invalid_addr - Simultaneously: malicious initCode bytes AND zero/mismatched sender address
+23. combo_7702_time_range - Simultaneously: 7702 authorization confusion AND invalid/expired timing assumptions
+24. combo_factory_paymaster - Simultaneously: malicious factory/initCode pattern AND paymaster griefing payload
+
+CHAIN-OF-THOUGHT PROCESS:
+STEP 1: Select an attack type from the taxonomy above
+STEP 2: Identify which invariant/check is being violated
+STEP 3: Craft the minimal field values to trigger the vulnerability while keeping JSON valid
+STEP 4: Explain the expected bundler/EntryPoint response
+
+IMPORTANT RULES:
+- Output ONLY valid JSON, no markdown, no prose outside the JSON structure
+- For combination attacks, explicitly label each vector in step2_design
+- "should_be_blocked": true for all attacks; false ONLY for "legitimate" type
+- All hex strings must start with "0x"
+- Vary field values between calls - no two UserOperations should be identical
+- accountGasLimits and gasFees MUST be bytes32 hex strings (exactly 64 hex chars after 0x)
+- nonce and preVerificationGas MUST be decimal strings, never hex strings
+- Do not wrap the final UserOperation inside another nested userop object unless you also include the actual userop field exactly once
+
+OUTPUT FORMAT:
+{
+  "reasoning": {
+    "step1_target": "attack type and specific invariant",
+    "step2_design": "field manipulation strategy",
+    "step3_construction": "how each field is crafted",
+    "step4_expected": "expected EntryPoint/bundler behavior"
+  },
+  "attack_type": "one of the taxonomy types above",
+  "should_be_blocked": true,
+  "vectors": ["primary_vector", "secondary_vector (if combo)"],
+  "userop": { ... }
+}"""
+
+
 # M3: Legitimate baseline samples for False Positive measurement
 LEGITIMATE_SAMPLES = [
     {
@@ -355,8 +470,384 @@ PAYMASTER_ATTACKS = [
             "accountGasLimits": "0x00000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000186a0",
             "preVerificationGas": "21000",
             "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+            "signature": "0x1234",
+        },
+    },
+    {
+        "description": "Zero address paymaster",
+        "attack_type": "paymaster_exploit",
+        "should_be_blocked": True,
+        "userop": {
+            "sender": "0xfedcbafedcbafedcbafedcbafedcbafedcba0987",
+            "nonce": "1",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0x00000000000000000000000000000000000000000000000000000000000f42400000000000000000000000000000000000000000000000000000000000186a0",
+            "preVerificationGas": "21000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
             "paymasterAndData": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
             "signature": "0xabcd",
+        },
+    },
+]
+
+
+# M4: Extended static attack samples for new categories
+M4_STATIC_ATTACKS = [
+    # --- reentrancy_attack ---
+    {
+        "description": "Re-entrant callData targeting EntryPoint.handleOps selector",
+        "attack_type": "reentrancy_attack",
+        "should_be_blocked": True,
+        "vectors": ["reentrancy_attack"],
+        "userop": {
+            "sender": "0x1111111111111111111111111111111111111111",
+            "nonce": "1",
+            "initCode": "0x",
+            "callData": "0x1fad948c0000000000000000000000000000000000000000000000000000000000000020",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000002dc6c0000000000000000000000000000000000000000000000000000000000030d40",
+            "preVerificationGas": "50000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        },
+    },
+    {
+        "description": "Re-entrant callData targeting depositTo after partial execution",
+        "attack_type": "reentrancy_attack",
+        "should_be_blocked": True,
+        "vectors": ["reentrancy_attack"],
+        "userop": {
+            "sender": "0x2222222222222222222222222222222222222222",
+            "nonce": "2",
+            "initCode": "0x",
+            "callData": "0xb760faf90000000000000000000000002222222222222222222222222222222222222222",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000001d4c00000000000000000000000000000000000000000000000000000000000030d40",
+            "preVerificationGas": "50000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        },
+    },
+    # --- bundler_griefing ---
+    {
+        "description": "Gas-wasting op: passes simulation (balance sufficient) but reverts on-chain via storage slot flip",
+        "attack_type": "bundler_griefing",
+        "should_be_blocked": True,
+        "vectors": ["bundler_griefing"],
+        "userop": {
+            "sender": "0x3333333333333333333333333333333333333333",
+            "nonce": "0",
+            "initCode": "0x",
+            "callData": "0xdeadbeef00000000000000000000000000000000000000000000000000000000",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000007a1200000000000000000000000000000000000000000000000000000000000030d40",
+            "preVerificationGas": "21000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000001",
+            "paymasterAndData": "0x",
+            "signature": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        },
+    },
+    # --- initcode_exploit ---
+    {
+        "description": "initCode with non-existent factory (address squatting attack)",
+        "attack_type": "initcode_exploit",
+        "should_be_blocked": True,
+        "vectors": ["initcode_exploit"],
+        "userop": {
+            "sender": "0x4444444444444444444444444444444444444444",
+            "nonce": "0",
+            "initCode": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef5fbfb9cf0000000000000000000000000000000000000000000000000000000000000000",
+            "callData": "0x",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000004c4b40000000000000000000000000000000000000000000000000000000000030d40",
+            "preVerificationGas": "100000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        },
+    },
+    {
+        "description": "initCode on already-deployed account (should fail: account exists)",
+        "attack_type": "initcode_exploit",
+        "should_be_blocked": True,
+        "vectors": ["initcode_exploit"],
+        "userop": {
+            "sender": "0x1234567890123456789012345678901234567890",
+            "nonce": "5",
+            "initCode": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa5fbfb9cf0000000000000000000000000000000000000000000000000000000000000042",
+            "callData": "0x",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000002dc6c0000000000000000000000000000000000000000000000000000000000030d40",
+            "preVerificationGas": "100000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        },
+    },
+    # --- cross_chain_replay ---
+    {
+        "description": "Signature from mainnet (chainId=1) replayed on local testnet (chainId=31337) - no chainId in sig hash binding",
+        "attack_type": "cross_chain_replay",
+        "should_be_blocked": True,
+        "vectors": ["cross_chain_replay"],
+        "userop": {
+            "sender": "0x5555555555555555555555555555555555555555",
+            "nonce": "1",
+            "initCode": "0x",
+            "callData": "0xa9059cbb000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000000000000000000000000000000000000000000000000000000000003e8",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000001d4c00000000000000000000000000000000000000000000000000000000000030d40",
+            "preVerificationGas": "50000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0x4d5c6b7a8f9e0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b1b",
+        },
+    },
+    # --- calldata_bomb ---
+    {
+        "description": "Oversized callData (8KB) to exhaust bundler bandwidth and mempool",
+        "attack_type": "calldata_bomb",
+        "should_be_blocked": True,
+        "vectors": ["calldata_bomb"],
+        "userop": {
+            "sender": "0x6666666666666666666666666666666666666666",
+            "nonce": "1",
+            "initCode": "0x",
+            "callData": "0x" + "aa" * 8192,
+            "accountGasLimits": "0x00000000000000000000000000000000000000000000000000000000002dc6c000000000000000000000000000000000000000000000000000000000001e8480",
+            "preVerificationGas": "9999999",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        },
+    },
+    # --- combo_sig_nonce ---
+    {
+        "description": "Combination: empty signature + replay nonce-0 (double-vector, hard to triage)",
+        "attack_type": "combo_sig_nonce",
+        "should_be_blocked": True,
+        "vectors": ["signature_forgery", "nonce_manipulation"],
+        "userop": {
+            "sender": "0x7777777777777777777777777777777777777777",
+            "nonce": "0",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000001d4c00000000000000000000000000000000000000000000000000000000000030d40",
+            "preVerificationGas": "50000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0x",
+        },
+    },
+    {
+        "description": "Combination: all-zero 65-byte signature + future nonce (nonce=99999999)",
+        "attack_type": "combo_sig_nonce",
+        "should_be_blocked": True,
+        "vectors": ["signature_forgery", "nonce_manipulation"],
+        "userop": {
+            "sender": "0x8888888888888888888888888888888888888888",
+            "nonce": "99999999",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000001d4c00000000000000000000000000000000000000000000000000000000000030d40",
+            "preVerificationGas": "50000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        },
+    },
+    # --- combo_gas_paymaster ---
+    {
+        "description": "Combination: uint256-max callGasLimit AND forged paymaster address with fake signature",
+        "attack_type": "combo_gas_paymaster",
+        "should_be_blocked": True,
+        "vectors": ["gas_limit_attack", "paymaster_exploit"],
+        "userop": {
+            "sender": "0x9999999999999999999999999999999999999999",
+            "nonce": "1",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "preVerificationGas": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+            "gasFees": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "paymasterAndData": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef0000000000000000000000000000000000000000000000000000000000000001deadbeef",
+            "signature": "0x1234",
+        },
+    },
+    {
+        "description": "Combination: zero callGasLimit AND underfunded zero-deposit paymaster",
+        "attack_type": "combo_gas_paymaster",
+        "should_be_blocked": True,
+        "vectors": ["gas_limit_attack", "paymaster_exploit"],
+        "userop": {
+            "sender": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "nonce": "1",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "preVerificationGas": "0",
+            "gasFees": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "paymasterAndData": "0x0000000000000000000000000000000000000000",
+            "signature": "0x1b",
+        },
+    },
+    # --- combo_initcode_invalid_addr ---
+    {
+        "description": "Combination: malicious initCode + sender is zero address (factory-to-zero exploit)",
+        "attack_type": "combo_initcode_invalid_addr",
+        "should_be_blocked": True,
+        "vectors": ["initcode_exploit", "invalid_address"],
+        "userop": {
+            "sender": "0x0000000000000000000000000000000000000000",
+            "nonce": "0",
+            "initCode": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef5fbfb9cf00000000000000000000000000000000000000000000000000000000000000ff",
+            "callData": "0x",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000004c4b40000000000000000000000000000000000000000000000000000000000030d40",
+            "preVerificationGas": "100000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1b",
+        },
+    },
+    {
+        "description": "Combination: initCode pointing to known EOA + mismatched sender address",
+        "attack_type": "combo_initcode_invalid_addr",
+        "should_be_blocked": True,
+        "vectors": ["initcode_exploit", "invalid_address"],
+        "userop": {
+            "sender": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "nonce": "0",
+            "initCode": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000000000000000000000000000000000000000beef",
+            "callData": "0xa9059cbb",
+            "accountGasLimits": "0x000000000000000000000000000000000000000000000000000000000002dc6c0000000000000000000000000000000000000000000000000000000000030d40",
+            "preVerificationGas": "100000",
+            "gasFees": "0x000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc1b",
+        },
+    },
+    # --- time_range_abuse ---
+    {
+        "description": "Expired timing semantics encoded via malformed signature context assumptions",
+        "attack_type": "time_range_abuse",
+        "should_be_blocked": True,
+        "vectors": ["time_range_abuse"],
+        "userop": {
+            "sender": "0x1212121212121212121212121212121212121212",
+            "nonce": "7",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0x00000000000000000000000000030d400000000000000000000000000001d4c0",
+            "preVerificationGas": "50000",
+            "gasFees": "0x0000000000000000000000003b9aca000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1b",
+        },
+    },
+    # --- eip7702_auth_bypass ---
+    {
+        "description": "0x7702-style initCode prefix with extra trailing initialization payload",
+        "attack_type": "eip7702_auth_bypass",
+        "should_be_blocked": True,
+        "vectors": ["eip7702_auth_bypass"],
+        "userop": {
+            "sender": "0x1313131313131313131313131313131313131313",
+            "nonce": "0",
+            "initCode": "0x7702000000000000000000000000000000000000deadbeefcafebabe0000000000000000000000000000000000000000000000000000000000000001",
+            "callData": "0x12345678",
+            "accountGasLimits": "0x0000000000000000000000000004c4b40000000000000000000000000001d4c0",
+            "preVerificationGas": "75000",
+            "gasFees": "0x00000000000000000000000059682f0000000000000000000000000059682f00",
+            "paymasterAndData": "0x",
+            "signature": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb1b",
+        },
+    },
+    # --- paymaster_postop_griefing ---
+    {
+        "description": "paymasterAndData with oversized context and fake signature trailer to stress postOp assumptions",
+        "attack_type": "paymaster_postop_griefing",
+        "should_be_blocked": True,
+        "vectors": ["paymaster_postop_griefing"],
+        "userop": {
+            "sender": "0x1414141414141414141414141414141414141414",
+            "nonce": "3",
+            "initCode": "0x",
+            "callData": "0x",
+            "accountGasLimits": "0x0000000000000000000000000002dc6c0000000000000000000000000001d4c0",
+            "preVerificationGas": "88000",
+            "gasFees": "0x0000000000000000000000004a817c800000000000000000000000004a817c80",
+            "paymasterAndData": "0x2222222222222222222222222222222222222222000000000000000000000000000186a0000000000000000000000000000186a0" + "ab" * 96,
+            "signature": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc1b",
+        },
+    },
+    # --- factory_stake_bypass ---
+    {
+        "description": "Factory-like initCode referencing an EOA and malformed deterministic deployment salt",
+        "attack_type": "factory_stake_bypass",
+        "should_be_blocked": True,
+        "vectors": ["factory_stake_bypass"],
+        "userop": {
+            "sender": "0x1515151515151515151515151515151515151515",
+            "nonce": "0",
+            "initCode": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "callData": "0x",
+            "accountGasLimits": "0x0000000000000000000000000004c4b400000000000000000000000000030d40",
+            "preVerificationGas": "95000",
+            "gasFees": "0x0000000000000000000000003b9aca0000000000000000000000000077359400",
+            "paymasterAndData": "0x",
+            "signature": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd1b",
+        },
+    },
+    # --- transient_storage_collision ---
+    {
+        "description": "callData crafted as if previous bundle state leaked through transient storage",
+        "attack_type": "transient_storage_collision",
+        "should_be_blocked": True,
+        "vectors": ["transient_storage_collision"],
+        "userop": {
+            "sender": "0x1616161616161616161616161616161616161616",
+            "nonce": "11",
+            "initCode": "0x",
+            "callData": "0x9f3f89dc" + "00" * 28 + "deadbeef" * 8,
+            "accountGasLimits": "0x0000000000000000000000000002dc6c0000000000000000000000000002dc6c",
+            "preVerificationGas": "64000",
+            "gasFees": "0x0000000000000000000000003b9aca000000000000000000000000003b9aca00",
+            "paymasterAndData": "0x",
+            "signature": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee1b",
+        },
+    },
+    # --- combo_7702_time_range ---
+    {
+        "description": "Combination: 7702-style initCode confusion with expired timing assumptions",
+        "attack_type": "combo_7702_time_range",
+        "should_be_blocked": True,
+        "vectors": ["eip7702_auth_bypass", "time_range_abuse"],
+        "userop": {
+            "sender": "0x1717171717171717171717171717171717171717",
+            "nonce": "0",
+            "initCode": "0x7702000000000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffff",
+            "callData": "0xabcdef01",
+            "accountGasLimits": "0x0000000000000000000000000004c4b40000000000000000000000000001d4c0",
+            "preVerificationGas": "120000",
+            "gasFees": "0x00000000000000000000000059682f000000000000000000000000009502f900",
+            "paymasterAndData": "0x",
+            "signature": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1b",
+        },
+    },
+    # --- combo_factory_paymaster ---
+    {
+        "description": "Combination: malformed factory initCode with oversized paymaster payload",
+        "attack_type": "combo_factory_paymaster",
+        "should_be_blocked": True,
+        "vectors": ["factory_stake_bypass", "paymaster_postop_griefing"],
+        "userop": {
+            "sender": "0x1818181818181818181818181818181818181818",
+            "nonce": "0",
+            "initCode": "0x8ba1f109551bd432803012645ac136ddd64dba72" + "ff" * 32,
+            "callData": "0x",
+            "accountGasLimits": "0x0000000000000000000000000007a1200000000000000000000000000002dc6c",
+            "preVerificationGas": "140000",
+            "gasFees": "0x0000000000000000000000007735940000000000000000000000000077359400",
+            "paymasterAndData": "0x3333333333333333333333333333333333333333" + "cd" * 120,
+            "signature": "0xabababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab1b",
         },
     },
 ]
@@ -389,6 +880,82 @@ def _parse_userop_json(response_text: str) -> Optional[Dict]:
         return json.loads(text)
     except json.JSONDecodeError:
         return None
+
+
+def _normalize_numeric_string(value: object) -> object:
+    if isinstance(value, int):
+        return str(value)
+    if not isinstance(value, str):
+        return value
+
+    text = value.strip()
+    if re.fullmatch(r"^\d+$", text):
+        return text
+    if re.fullmatch(r"^0x[a-fA-F0-9]+$", text):
+        try:
+            return str(int(text, 16))
+        except ValueError:
+            return value
+    return value
+
+
+def _normalize_packed_bytes32(value: object) -> object:
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    if not re.fullmatch(r"^0x[a-fA-F0-9]+$", text):
+        return value
+
+    payload = text[2:]
+    if not payload:
+        return "0x" + ("0" * 64)
+    if len(payload) == 64:
+        return f"0x{payload.lower()}"
+    if len(payload) == 128:
+        lower_128 = int(payload[:64], 16) & ((1 << 128) - 1)
+        upper_128 = int(payload[64:], 16) & ((1 << 128) - 1)
+        packed = (upper_128 << 128) | lower_128
+        return f"0x{packed:064x}"
+
+    packed = int(payload, 16) & ((1 << 256) - 1)
+    return f"0x{packed:064x}"
+
+
+def normalize_attack_record(attack: Dict, fallback_attack_type: Optional[str] = None) -> Dict:
+    """Normalize one AI-generated attack record into the project dataset shape.
+
+    Handles wrapper-style responses, nested userop payloads, and hex-encoded numeric
+    fields that should be emitted as decimal strings for downstream validation.
+    """
+    normalized = dict(attack)
+    candidate = normalized.get("userop", normalized)
+
+    if isinstance(candidate, dict) and "sender" not in candidate and isinstance(candidate.get("userop"), dict):
+        wrapper = candidate
+        candidate = wrapper["userop"]
+        normalized["attack_type"] = wrapper.get(
+            "attack_type", normalized.get("attack_type", fallback_attack_type)
+        )
+        for key in ["should_be_blocked", "vectors", "reasoning", "description"]:
+            if key in wrapper and key not in normalized:
+                normalized[key] = wrapper[key]
+
+    if isinstance(candidate, dict):
+        userop = dict(candidate)
+        for field in NUMERIC_STRING_FIELDS:
+            if field in userop:
+                userop[field] = _normalize_numeric_string(userop[field])
+        for field in ["accountGasLimits", "gasFees"]:
+            if field in userop:
+                userop[field] = _normalize_packed_bytes32(userop[field])
+        normalized["userop"] = userop
+        normalized.setdefault("attack_type", fallback_attack_type)
+        normalized["valid_json"] = True
+    else:
+        normalized["userop"] = None
+        normalized["valid_json"] = False
+
+    return normalized
 
 
 # ---------------------------------------------------------------------------
@@ -485,7 +1052,7 @@ class BatchAttackGenerator:
         max_retries: int = 3,
         retry_delay: float = 1.0,
         temperature: float = 0.9,
-        prompt_version: str = "v3",
+        prompt_version: str = "v4",
         seed: int = RANDOM_SEED,
     ):
         self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY")
@@ -518,9 +1085,11 @@ class BatchAttackGenerator:
             "messages": [
                 {
                     "role": "system",
-                    "content": SYSTEM_PROMPT_V3
-                    if self.prompt_version == "v3"
-                    else SYSTEM_PROMPT_V2,
+                    "content": (
+                        SYSTEM_PROMPT_V4 if self.prompt_version == "v4"
+                        else SYSTEM_PROMPT_V3 if self.prompt_version == "v3"
+                        else SYSTEM_PROMPT_V2
+                    ),
                 },
                 {"role": "user", "content": user_message},
             ],
@@ -554,10 +1123,18 @@ class BatchAttackGenerator:
         self, session: aiohttp.ClientSession, attack_type: str, index: int
     ) -> Dict:
         """Generate one attack and return result dict with metadata."""
-        msg = (
-            f"Generate a malformed UserOperation that targets: {attack_type}. "
-            "Make it unique and different from standard cases."
-        )
+        is_combo = attack_type in COMBO_ATTACK_TYPES
+        if is_combo:
+            msg = (
+                f"Generate a COMBINATION attack UserOperation for type: {attack_type}. "
+                "This must simultaneously exploit TWO distinct vulnerability vectors as described in your taxonomy. "
+                "Make it realistic and unique."
+            )
+        else:
+            msg = (
+                f"Generate a malformed UserOperation that targets: {attack_type}. "
+                "Make it unique and different from standard cases."
+            )
         raw, ok = await self._call_api(session, msg)
         result: Dict = {
             "index": index,
@@ -567,8 +1144,11 @@ class BatchAttackGenerator:
         }
         if ok:
             parsed = _parse_userop_json(raw)
-            result["userop"] = parsed
-            result["valid_json"] = parsed is not None
+            if isinstance(parsed, dict):
+                result = normalize_attack_record({**result, "userop": parsed}, result["attack_type"])
+            else:
+                result["userop"] = None
+                result["valid_json"] = False
             if parsed is None:
                 result["raw_response"] = raw
         else:
@@ -582,35 +1162,69 @@ class BatchAttackGenerator:
         count: int = 50,
         attack_types: Optional[List[str]] = None,
     ) -> List[Dict]:
-        """Generate `count` attacks in parallel, cycling through attack_types."""
-        types = attack_types or ATTACK_TYPES
+        """Generate `count` attacks in parallel, cycling through attack_types.
+
+        M4: Default uses full ATTACK_TYPES including new categories and combo attacks.
+        Combo attacks receive ~15% share of slots to reflect real-world complexity.
+        """
+        base_types = [t for t in ATTACK_TYPES if t != "legitimate"]
+        combo_types = COMBO_ATTACK_TYPES
+        # Build weighted type sequence: ~15% combo attacks
+        if attack_types is None:
+            n_combo = max(1, int(count * 0.15))
+            n_single = count - n_combo
+            weighted: List[str] = []
+            for i in range(n_single):
+                weighted.append(base_types[i % len(base_types)])
+            for i in range(n_combo):
+                weighted.append(combo_types[i % len(combo_types)])
+            random.shuffle(weighted)
+            types_seq = weighted
+        else:
+            types_seq = [attack_types[i % len(attack_types)] for i in range(count)]
+
         print(
-            f"Generating {count} attacks ({len(types)} categories, temperature={self.temperature})..."
+            f"Generating {count} attacks (prompt={self.prompt_version}, categories={len(set(types_seq))}, temperature={self.temperature})..."
         )
         async with aiohttp.ClientSession() as session:
             tasks = [
-                self._generate_one(session, types[i % len(types)], i + 1)
+                self._generate_one(session, types_seq[i], i + 1)
                 for i in range(count)
             ]
             return await asyncio.gather(*tasks)
 
     def save_dataset(self, attacks: List[Dict], output_path: str) -> str:
-        valid_count = sum(1 for a in attacks if a.get("valid_json"))
+        normalized_attacks = [
+            normalize_attack_record(attack, attack.get("attack_type")) for attack in attacks
+        ]
+        valid_count = sum(1 for a in normalized_attacks if a.get("valid_json"))
+        type_counts: Dict[str, int] = {}
+        for a in normalized_attacks:
+            t = a.get("attack_type", "unknown")
+            type_counts[t] = type_counts.get(t, 0) + 1
+        validator = AttackValidator(strict_mode=False)
+        valid_schema, invalid_schema, schema_stats = validator.validate_batch(normalized_attacks)
         data = {
             "metadata": {
-                "total_count": len(attacks),
+                "total_count": len(normalized_attacks),
                 "valid_count": valid_count,
+                "schema_valid_count": len(valid_schema),
+                "schema_invalid_count": len(invalid_schema),
                 "generation_date": datetime.now().isoformat(),
                 "prompt_version": self.prompt_version,
                 "temperature": self.temperature,
                 "random_seed": self.seed,
+                "attack_type_distribution": type_counts,
+                "quality_summary": schema_stats,
             },
-            "attacks": attacks,
+            "attacks": normalized_attacks,
         }
         Path(output_path).write_text(
             json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
         )
-        print(f"Dataset saved → {output_path}  ({valid_count}/{len(attacks)} valid)")
+        print(
+            f"Dataset saved → {output_path}  ({valid_count}/{len(normalized_attacks)} JSON-valid, {len(valid_schema)}/{len(normalized_attacks)} schema-valid)"
+        )
         return output_path
 
     def get_legitimate_samples(self) -> List[Dict]:
@@ -638,6 +1252,19 @@ class BatchAttackGenerator:
             for i, attack in enumerate(PAYMASTER_ATTACKS, 1)
         ]
 
+    def get_m4_static_attacks(self) -> List[Dict]:
+        """M4: Return static attack samples for extended categories (reentrancy, bundler griefing, initcode, cross-chain replay, calldata bomb, combination attacks)."""
+        return [
+            {
+                "index": i,
+                "timestamp": datetime.now().isoformat(),
+                "success": True,
+                "valid_json": True,
+                **attack,
+            }
+            for i, attack in enumerate(M4_STATIC_ATTACKS, 1)
+        ]
+
 
 # ---------------------------------------------------------------------------
 # Validator
@@ -659,16 +1286,22 @@ class AttackValidator:
     mode) rejects unknown fields.
     """
 
-    REQUIRED_FIELDS = {
+    COMMON_REQUIRED_FIELDS = {
         "sender": {"pattern": r"^0x[a-fA-F0-9]{40}$"},
         "nonce": {"pattern": r"^\d+$"},
         "callData": {"pattern": r"^0x[a-fA-F0-9]*$"},
+        "preVerificationGas": {"pattern": r"^\d+$"},
+        "signature": {"pattern": r"^0x[a-fA-F0-9]*$"},
+    }
+    UNPACKED_REQUIRED_FIELDS = {
         "callGasLimit": {"pattern": r"^\d+$"},
         "verificationGasLimit": {"pattern": r"^\d+$"},
-        "preVerificationGas": {"pattern": r"^\d+$"},
         "maxFeePerGas": {"pattern": r"^\d+$"},
         "maxPriorityFeePerGas": {"pattern": r"^\d+$"},
-        "signature": {"pattern": r"^0x[a-fA-F0-9]*$"},
+    }
+    PACKED_REQUIRED_FIELDS = {
+        "accountGasLimits": {"pattern": r"^0x[a-fA-F0-9]+$"},
+        "gasFees": {"pattern": r"^0x[a-fA-F0-9]+$"},
     }
     OPTIONAL_FIELDS = {
         "initCode": {"pattern": r"^0x[a-fA-F0-9]*$"},
@@ -687,8 +1320,8 @@ class AttackValidator:
         if not isinstance(userop, dict):
             return ValidationResult(False, ["Not a dict"], [], {})
 
-        # Required fields present + string type
-        for name, spec in self.REQUIRED_FIELDS.items():
+        # Common required fields present + string type
+        for name, spec in self.COMMON_REQUIRED_FIELDS.items():
             if name not in userop:
                 errors.append(f"Missing required field: {name}")
                 field_issues[name] = ["Missing"]
@@ -702,6 +1335,42 @@ class AttackValidator:
                 errors.append(f"{name}: invalid format '{val}'")
                 field_issues.setdefault(name, []).append("Invalid format")
 
+        has_packed = any(name in userop for name in self.PACKED_REQUIRED_FIELDS)
+        has_unpacked = any(name in userop for name in self.UNPACKED_REQUIRED_FIELDS)
+
+        if has_packed:
+            for name, spec in self.PACKED_REQUIRED_FIELDS.items():
+                if name not in userop:
+                    errors.append(f"Missing required field: {name}")
+                    field_issues[name] = ["Missing"]
+                    continue
+                val = userop[name]
+                if not isinstance(val, str):
+                    errors.append(f"{name}: expected str, got {type(val).__name__}")
+                    field_issues[name] = [f"Wrong type: {type(val).__name__}"]
+                    continue
+                if not re.match(spec["pattern"], val):
+                    errors.append(f"{name}: invalid format '{val}'")
+                    field_issues.setdefault(name, []).append("Invalid format")
+        elif has_unpacked:
+            for name, spec in self.UNPACKED_REQUIRED_FIELDS.items():
+                if name not in userop:
+                    errors.append(f"Missing required field: {name}")
+                    field_issues[name] = ["Missing"]
+                    continue
+                val = userop[name]
+                if not isinstance(val, str):
+                    errors.append(f"{name}: expected str, got {type(val).__name__}")
+                    field_issues[name] = [f"Wrong type: {type(val).__name__}"]
+                    continue
+                if not re.match(spec["pattern"], val):
+                    errors.append(f"{name}: invalid format '{val}'")
+                    field_issues.setdefault(name, []).append("Invalid format")
+        else:
+            for name in self.PACKED_REQUIRED_FIELDS:
+                errors.append(f"Missing required field: {name}")
+                field_issues.setdefault(name, []).append("Missing")
+
         # Optional fields format check
         for name, spec in self.OPTIONAL_FIELDS.items():
             val = userop.get(name)
@@ -713,7 +1382,12 @@ class AttackValidator:
 
         # Unknown fields (strict mode)
         if self.strict_mode:
-            known = set(self.REQUIRED_FIELDS) | set(self.OPTIONAL_FIELDS)
+            known = (
+                set(self.COMMON_REQUIRED_FIELDS)
+                | set(self.UNPACKED_REQUIRED_FIELDS)
+                | set(self.PACKED_REQUIRED_FIELDS)
+                | set(self.OPTIONAL_FIELDS)
+            )
             unknown = set(userop.keys()) - known
             if unknown:
                 warnings.append(f"Unknown fields: {unknown}")
@@ -737,18 +1411,22 @@ class AttackValidator:
         """
         valid, invalid = [], []
         for attack in attacks:
-            userop = attack.get("userop")
+            normalized_attack = normalize_attack_record(
+                attack,
+                attack.get("attack_type"),
+            )
+            userop = normalized_attack.get("userop")
             if not userop:
                 invalid.append(
                     {
-                        **attack,
+                        **normalized_attack,
                         "validation": {"is_valid": False, "errors": ["No userop"]},
                     }
                 )
                 continue
             r = self.validate(userop)
             annotated = {
-                **attack,
+                **normalized_attack,
                 "validation": {
                     "is_valid": r.is_valid,
                     "errors": r.errors,
@@ -857,6 +1535,23 @@ examples:
         action="store_true",
         help="Disable strict validation (allow unknown fields)",
     )
+    p.add_argument(
+        "--prompt-version",
+        choices=["v2", "v3", "v4"],
+        default="v4",
+        help="System prompt version for batch generation (default: v4)",
+    )
+    p.add_argument(
+        "--include-static",
+        action="store_true",
+        default=True,
+        help="Prepend M3/M4 static attack samples to the dataset (default: True)",
+    )
+    p.add_argument(
+        "--no-static",
+        action="store_true",
+        help="Disable static sample prepending (overrides --include-static)",
+    )
     return p
 
 
@@ -879,13 +1574,24 @@ def main() -> None:
         if not api_key:
             print("Error: API key required. Set DEEPSEEK_API_KEY or pass --api-key.")
             return
-        gen = BatchAttackGenerator(api_key=api_key)
+        prompt_ver = getattr(args, "prompt_version", "v4")
+        gen = BatchAttackGenerator(api_key=api_key, prompt_version=prompt_ver)
         attacks = asyncio.run(gen.generate_batch(count=args.count))
-        valid_n = sum(1 for a in attacks if a.get("valid_json"))
+
+        # Prepend static samples (M3 paymaster + M4 extended) unless --no-static
+        include_static = not getattr(args, "no_static", False)
+        if include_static:
+            static_samples = gen.get_legitimate_samples() + gen.get_paymaster_attacks() + gen.get_m4_static_attacks()
+            all_attacks = static_samples + attacks
+            print(f"Prepended {len(static_samples)} static samples (legitimate + paymaster + M4)")
+        else:
+            all_attacks = attacks
+
+        valid_n = sum(1 for a in all_attacks if a.get("valid_json"))
         print(
-            f"Done: {valid_n}/{len(attacks)} valid JSON ({valid_n / len(attacks) * 100:.1f}%)"
+            f"Done: {valid_n}/{len(all_attacks)} valid JSON ({valid_n / len(all_attacks) * 100:.1f}%)"
         )
-        gen.save_dataset(attacks, args.output)
+        gen.save_dataset(all_attacks, args.output)
 
     # --------------------------------------------------------------- validate
     elif args.mode == "validate":
@@ -902,6 +1608,10 @@ def main() -> None:
         )
         report_path = args.output.replace(".json", "_report.json")
         validator.save_report(valid, invalid, stats, report_path)
+
+
+if __name__ == "__main__":
+    main()
 
 
 if __name__ == "__main__":

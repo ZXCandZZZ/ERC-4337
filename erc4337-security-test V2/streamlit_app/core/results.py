@@ -41,6 +41,16 @@ class ResultsService:
         out["md"] = sorted(self.ai_analysis_dir.glob("*.md"), reverse=True)
         return out
 
+    def list_ai_chain_csv(self) -> List[Path]:
+        if not self.reports_dir.exists():
+            return []
+        return sorted(self.reports_dir.glob("ai_dataset_chain_*.csv"), reverse=True)
+
+    def list_ai_chain_json(self) -> List[Path]:
+        if not self.reports_dir.exists():
+            return []
+        return sorted(self.reports_dir.glob("ai_dataset_chain_*.json"), reverse=True)
+
     @staticmethod
     def load_csv(path: Path) -> pd.DataFrame:
         return pd.read_csv(path)
